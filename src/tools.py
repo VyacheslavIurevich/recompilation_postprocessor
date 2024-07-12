@@ -5,7 +5,6 @@
 import pyhidra
 pyhidra.start()
 from ghidra.program.model.data import DataTypeWriter
-from java.io import PrintWriter
 
 def function_in_runtime(function):
     '''Check if input function is from C Runtime'''
@@ -16,7 +15,7 @@ def address_to_int(address):
     '''Address is a number in hex'''
     return int(str(address), 16)
 
-ef function_is_plt(function):
+def function_is_plt(function):
     '''Check if input function is PLT jump'''
     program = function.getProgram()
     listing = program.getListing()

@@ -1,9 +1,16 @@
-'''Check if input function is PLT jump'''
+'''Tools for checking functions and exporting decompiled program to a .c file'''
 
-#pylint: disable=wrong-import-order
-import pyhidra # pylint: disable=import-error
-from elftools.elf.elffile import ELFFile # pylint: disable=import-error
+#pylint: disable=wrong-import-order, wrong-import-position, import-error
+from elftools.elf.elffile import ELFFile
+import pyhidra
 pyhidra.start()
+from ghidra.program.model.data import DataTypeWriter
+from java.io import PrintWriter
+
+def function_in_runtime(function):
+    '''Check if input function is from C Runtime'''
+    function_name = function.getName()
+    return function_name.startswith('_')
 
 def get_got_bounds(path):
     '''Get GOT section addresses bounds'''
@@ -27,3 +34,11 @@ def function_is_plt(function, path):
             address = int(address_str, 16)
             return got_start <= address - image_base <= got_end
     return False
+
+def write_program_data_types(program, file, monitor):
+    """Dumping program data types"""
+    dtm = program.getDataTypeManager()
+    c_file_writer = PrintWriter(file)
+    data_type_writer = DataTypeWriter(dtm, c_file_writer, False)
+    data_type_writer.write(dtm, monitor)
+    c_file_writer.close()

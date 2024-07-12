@@ -1,10 +1,10 @@
 '''Tools for checking functions and exporting decompiled program to a .c file'''
 
 #pylint: disable=wrong-import-order, wrong-import-position, import-error
+
 import pyhidra
 pyhidra.start()
 from ghidra.program.model.data import DataTypeWriter
-from java.io import PrintWriter
 
 def function_in_runtime(function):
     '''Check if input function is from C Runtime'''
@@ -31,10 +31,17 @@ def function_is_plt(function):
                 return True
     return False
 
-def write_program_data_types(program, file, monitor):
+def write_program_data_types(program, c_file_writer, monitor):
     """Dumping program data types"""
     dtm = program.getDataTypeManager()
-    c_file_writer = PrintWriter(file)
     data_type_writer = DataTypeWriter(dtm, c_file_writer, False)
     data_type_writer.write(dtm, monitor)
-    c_file_writer.close()
+
+def exclude_function(function):
+    """Dumping program data types"""
+    entry_point = function.getEntryPoint()
+    code_unit_at = function.getProgram().getListing().getCodeUnitAt(entry_point)
+    return \
+        function_in_runtime(function) or \
+        function_is_plt(function) or \
+        code_unit_at.getMnemonicString() == "??"

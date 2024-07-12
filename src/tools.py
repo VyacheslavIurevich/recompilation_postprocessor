@@ -40,4 +40,9 @@ def write_program_data_types(program, c_file_writer, monitor):
 
 def exclude_function(function, binary_file_path):
     """Dumping program data types"""
-    return function_in_runtime(function) or function_is_plt(function, binary_file_path)
+    entry_point = function.getEntryPoint()
+    code_unit_at = function.getProgram().getListing().getCodeUnitAt(entry_point)
+    return \
+        function_in_runtime(function) or \
+        function_is_plt(function, binary_file_path) or \
+        code_unit_at.getMnemonicString() == "??"

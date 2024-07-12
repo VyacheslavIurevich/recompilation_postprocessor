@@ -18,12 +18,12 @@ def function_is_plt(function, path):
     image_base = int(str(program.getImageBase()), 16)
     listing = program.getListing()
     body = function.getBody()
+    got_start, got_end = get_got_bounds(path)
     for address in body.getAddresses(True):
         code_unit = str(listing.getCodeUnitAt(address))
         if code_unit.startswith("JMP qword ptr"):
             words = code_unit.split()
             address_str = words[-1][1:-1] # removing []
             address = int(address_str, 16)
-            got_start, got_end = get_got_bounds(path)
             return got_start <= address - image_base <= got_end
     return False

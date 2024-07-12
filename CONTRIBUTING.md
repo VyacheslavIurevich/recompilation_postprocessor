@@ -13,4 +13,3 @@ git config --local core.hooksPath .githooks/
 8. Your naming of commits and pull requests must be logical and reasonable.
 9. Please use "git commit -s" option.
 10. If you are in doubt what to do, it's better to text developers.
-

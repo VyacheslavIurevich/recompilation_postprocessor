@@ -3,4 +3,3 @@ This console app provides ability to postprocess code, which is decompiled via G
 # Team
 * Vyacheslav Kochergin. [GitHub](https://github.com/VyacheslavIurevich), [Contact](https://t.me/se4life).
 * Vasilii Sarapulov. [GitHub](https://github.com/Sarapulov-Vas), [Contact](https://t.me/sarpaulov).
-

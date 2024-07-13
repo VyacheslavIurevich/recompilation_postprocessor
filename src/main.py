@@ -2,10 +2,10 @@
 
 # pylint: disable=wrong-import-position, import-error
 import pyhidra
+
 pyhidra.start()
 from java.io import File, PrintWriter
-from ghidra.app.decompiler import DecompileOptions
-from ghidra.app.decompiler import DecompInterface
+from ghidra.app.decompiler import DecompileOptions, DecompInterface
 import tools
 
 
@@ -23,13 +23,16 @@ def export_c_code(binary_file_path, output_file_path):
 
         f = File(output_file_path)
         c_file_writer = PrintWriter(f)
+        c_file_writer.println("#include <inttypes.h>")
         tools.write_program_data_types(program, c_file_writer, flat_api.monitor)
         for function in program.getFunctionManager().getFunctions(True):
             if tools.exclude_function(function):
                 continue
             results = decompiler.decompileFunction(function, 0, flat_api.monitor)
-            c_file_writer.println(results.getDecompiledFunction().getC())
+            function_code = results.getDecompiledFunction().getC()
+            function_code_replaced_types = tools.replace_types(function_code)
+            c_file_writer.println(function_code_replaced_types)
         c_file_writer.close()
 
 
-export_c_code("resources/in/test.out", "resources/out/test.c")
+export_c_code("resources/in/bmp-header.out", "resources/out/test.c")

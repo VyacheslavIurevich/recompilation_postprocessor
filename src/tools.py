@@ -67,7 +67,7 @@ def exclude_function(function):
 
 
 def replace_types(function_code):
-    """Replacing all Ghidra types with types from intttypes.h"""
+    """Replacing all Ghidra types with types from intttypes.h and standart C types"""
     for old_type, new_type in TYPES_TO_REPLACE.items():
         function_code = function_code.replace(old_type, new_type)
     return function_code

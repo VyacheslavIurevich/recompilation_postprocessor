@@ -2,9 +2,24 @@
 
 # pylint: disable=wrong-import-order, wrong-import-position, import-error
 
+from collections import OrderedDict
 import pyhidra
+
 pyhidra.start()
 from ghidra.program.model.data import DataTypeWriter
+
+TYPES_TO_REPLACE = OrderedDict(byte="unsigned char",
+                               dwfenc="unsigned char",
+                               dword="unsigned int",
+                               qword="unsigned long",
+                               word="unsigned short",
+                               uint="unsigned int",
+                               undefined1="uint8_t",
+                               undefined2="uint16_t",
+                               undefined4="uint32_t",
+                               undefined8="uint64_t",
+                               undefined="unsigned int"
+                               )
 
 
 def function_in_runtime(function):
@@ -46,7 +61,13 @@ def exclude_function(function):
     """Dumping program data types"""
     entry_point = function.getEntryPoint()
     code_unit_at = function.getProgram().getListing().getCodeUnitAt(entry_point)
-    return \
-        function_in_runtime(function) or \
-        function_is_plt(function) or \
-        code_unit_at.getMnemonicString() == "??"
+    return function_in_runtime(function) \
+        or function_is_plt(function) \
+        or code_unit_at.getMnemonicString() == "??"
+
+
+def replace_types(function_code):
+    """Replacing all Ghidra types with types from intttypes.h and standart C types"""
+    for old_type, new_type in TYPES_TO_REPLACE.items():
+        function_code = function_code.replace(old_type, new_type)
+    return function_code

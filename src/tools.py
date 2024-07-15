@@ -58,7 +58,6 @@ def write_program_data_types(program, c_file_writer, monitor):
     for data_type in dtm.getAllDataTypes():
         if ".h" not in data_type.getPathName().split('/')[1]:
             data_type_list.append(data_type)
-
     data_type_writer.write(data_type_list, monitor)
     dtm.close()
 

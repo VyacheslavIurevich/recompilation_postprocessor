@@ -39,4 +39,4 @@ def export_c_code(binary_file_path, output_file_path):
         decompiler.dispose()
 
 
-export_c_code("/home/sarapulov-vasilii/Downloads/bmp_viewer", "resources/out/test.c")
+export_c_code("resources/int/bmp-header.out", "resources/out/test.c")

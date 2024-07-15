@@ -53,7 +53,7 @@ def function_is_plt(function):
 def write_program_data_types(program, c_file_writer, monitor, library_list):
     """Dumping program data types"""
     dtm = program.getDataTypeManager()
-    data_type_writer = DataTypeWriter(dtm, c_file_writer,)
+    data_type_writer = DataTypeWriter(dtm, c_file_writer, )
     for data_type in dtm.getAllDataTypes():
         if data_type.getPathName().split('/')[1] in library_list:
             dtm.remove(data_type, monitor)

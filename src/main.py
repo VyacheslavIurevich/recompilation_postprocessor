@@ -25,7 +25,7 @@ def export_c_code(binary_file_path, output_file_path):
         c_file_writer = PrintWriter(f)
         for lib in LIBRARY_LIST:
             c_file_writer.println(f"#include <{lib}>")
-        tools.write_program_data_types(program, c_file_writer, flat_api.monitor, LIBRARY_LIST)
+        tools.write_program_data_types(program, c_file_writer, flat_api.monitor)
         for function in program.getFunctionManager().getFunctions(True):
             if tools.exclude_function(function):
                 continue
@@ -38,4 +38,4 @@ def export_c_code(binary_file_path, output_file_path):
         decompiler.dispose()
 
 
-export_c_code("resources/in/bmp-header.out", "resources/out/test.c")
+export_c_code("/home/sarapulov-vasilii/Downloads/bmp_viewer", "resources/out/test.c")

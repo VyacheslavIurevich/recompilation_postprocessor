@@ -1,6 +1,6 @@
 """Postprocessor main"""
 
-# pylint: disable=wrong-import-position, import-error
+# pylint: disable=wrong-import-position, import-error, too-many-locals
 import pyhidra
 
 pyhidra.start()

@@ -28,6 +28,7 @@ def export_c_code(binary_file_path, output_file_path):
             c_file_writer.println(f"#include <{lib}>")
         tools.write_program_data_types(program, c_file_writer, flat_api.monitor)
         used_concats = set()
+        functions = []
         for function in program.getFunctionManager().getFunctions(True):
             if tools.exclude_function(function):
                 continue
@@ -37,7 +38,11 @@ def export_c_code(binary_file_path, output_file_path):
             if "CONCAT" in function_code_replaced_types:
                 used_concats = \
                     tools.put_concat(c_file_writer, function_code_replaced_types, used_concats)
-            c_file_writer.println(function_code_replaced_types)
+            functions.append((function, function_code_replaced_types))
+        # sorting functions by entry points' addresses
+        functions.sort(key=lambda func: tools.address_to_int(func[0].getEntryPoint()))
+        for function in functions:
+            c_file_writer.println(function[1])
         c_file_writer.close()
         decompiler.closeProgram()
         decompiler.dispose()

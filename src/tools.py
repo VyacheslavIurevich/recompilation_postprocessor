@@ -8,18 +8,7 @@ import pyhidra
 pyhidra.start()
 from ghidra.program.model.data import DataTypeWriter
 
-TYPES_TO_REPLACE = OrderedDict(byte="unsigned char",
-                               dwfenc="unsigned char",
-                               dword="unsigned int",
-                               qword="unsigned long",
-                               word="unsigned short",
-                               uint="unsigned int",
-                               undefined1="uint8_t",
-                               undefined2="uint16_t",
-                               undefined4="uint32_t",
-                               undefined8="uint64_t",
-                               undefined="unsigned int"
-                               )
+TYPES_TO_REPLACE = OrderedDict(uint="unsigned int")
 
 
 def function_in_runtime(function):

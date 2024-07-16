@@ -34,10 +34,11 @@ def export_c_code(binary_file_path, output_file_path):
             results = decompiler.decompileFunction(function, 0, flat_api.monitor)
             decompiled_function = results.getDecompiledFunction()
             function_signature = decompiled_function.getSignature()
+            function_signature_replaced_types = tools.replace_types(function_signature)
             function_code = decompiled_function.getC()
             function_code_replaced_types = tools.replace_types(function_code)
             functions_code.append(function_code_replaced_types)
-            c_file_writer.println(function_signature + '\n')
+            c_file_writer.println(function_signature_replaced_types + '\n')
         used_concats = set()
         for function_code in functions_code:
             if "CONCAT" in function_code:

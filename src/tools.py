@@ -3,23 +3,28 @@
 # pylint: disable=wrong-import-order, wrong-import-position, import-error
 
 from collections import OrderedDict
+from math import floor, log2
 import pyhidra
 
 pyhidra.start()
 from ghidra.program.model.data import DataTypeWriter
 
 TYPES_TO_REPLACE = OrderedDict(uint="unsigned int")
+CONCAT_LEN = 6  # = len("CONCAT")
+BYTE_SIZE = 8
+HEX_BASE = 16
+RUNTIME_PREFIX = '_'
 
 
 def function_in_runtime(function):
     """Check if input function is from C Runtime"""
     function_name = function.getName()
-    return function_name.startswith('_')
+    return function_name.startswith(RUNTIME_PREFIX)
 
 
 def address_to_int(address):
     """Address is a number in hex"""
-    return int(str(address), 16)
+    return int(str(address), HEX_BASE)
 
 
 def function_is_plt(function):
@@ -65,3 +70,31 @@ def replace_types(function_code):
     for old_type, new_type in TYPES_TO_REPLACE.items():
         function_code = function_code.replace(old_type, new_type)
     return function_code
+
+
+def get_nearest_lower_power_2(num):
+    """Rounds a number to nearest lower power of 2"""
+    return 2 ** floor(log2(num))
+
+
+def put_concat(file_writer, function_code, used_concats):
+    """Puts CONCATXY functions into C code"""
+    concat_cnt = function_code.count("CONCAT")
+    concat_idx = 0
+    for _ in range(concat_cnt):
+        concat_idx = function_code.find("CONCAT", concat_idx) + CONCAT_LEN
+        first_size = int(function_code[concat_idx])
+        second_size = int(function_code[concat_idx + 1])
+        if (first_size, second_size) in used_concats:
+            continue
+        first_inttype_size = get_nearest_lower_power_2(first_size * BYTE_SIZE)
+        second_inttype_size = get_nearest_lower_power_2(second_size * BYTE_SIZE)
+        concat_name = f"unsigned long CONCAT{first_size}{second_size}"
+        concat_args = f"(uint{first_inttype_size}_t a, uint{second_inttype_size}_t b)\n"
+        concat_body = \
+            f"return ((unsigned long)b) | (unsigned long)a << ({second_size} * {BYTE_SIZE});"
+        concat_signature = concat_name + concat_args
+        concat_function = concat_signature + '{' + '\n' + '\t' + concat_body + '\n' + '}' + '\n'
+        file_writer.println(concat_function)
+        used_concats.add((first_size, second_size))
+    return used_concats

@@ -9,9 +9,9 @@ import pyhidra
 pyhidra.start()
 from ghidra.program.model.data import DataTypeWriter
 
-TYPES_TO_REPLACE = OrderedDict(uint="unsigned int", \
-                               ushort = "unsigned short", \
-                                ulong = "unsigned long")
+TYPES_TO_REPLACE = OrderedDict(uint="unsigned int",
+                               ushort="unsigned short",
+                               ulong="unsigned long")
 CONCAT_LEN = 6  # = len("CONCAT")
 BYTE_SIZE = 8
 HEX_BASE = 16

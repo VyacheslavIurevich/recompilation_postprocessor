@@ -16,17 +16,19 @@ CONCAT_LEN = 6  # = len("CONCAT")
 BYTE_SIZE = 8
 HEX_BASE = 16
 RUNTIME_PREFIX = '_'
+PLT_INSTRUCTION = "JMP qword ptr"
+STACK_PROTECTOR_VARIABLE = "in_FS_OFFSET"
+
+
+def address_to_int(address):
+    """Address is a number in hex"""
+    return int(str(address), HEX_BASE)
 
 
 def function_in_runtime(function):
     """Check if input function is from C Runtime"""
     function_name = function.getName()
     return function_name.startswith(RUNTIME_PREFIX)
-
-
-def address_to_int(address):
-    """Address is a number in hex"""
-    return int(str(address), HEX_BASE)
 
 
 def function_is_plt(function):
@@ -38,24 +40,12 @@ def function_is_plt(function):
     max_address = address_to_int(body.getMaxAddress())
     for address in body.getAddresses(True):
         code_unit = str(listing.getCodeUnitAt(address))
-        if code_unit.startswith("JMP qword ptr"):
+        if code_unit.startswith(PLT_INSTRUCTION):
             words = code_unit.split()
             jmp_address = address_to_int(words[-1][1:-1])  # [1:-1] is to remove [] from address
             if not min_address <= jmp_address <= max_address:
                 return True
     return False
-
-
-def write_program_data_types(program, c_file_writer, monitor):
-    """Dumping program data types"""
-    dtm = program.getDataTypeManager()
-    data_type_writer = DataTypeWriter(dtm, c_file_writer)
-    data_type_list = []
-    for data_type in dtm.getAllDataTypes():
-        if ".h" not in data_type.getPathName().split('/')[1]:
-            data_type_list.append(data_type)
-    data_type_writer.write(data_type_list, monitor)
-    dtm.close()
 
 
 def exclude_function(function):
@@ -67,11 +57,48 @@ def exclude_function(function):
         or code_unit_at.getMnemonicString() == "??"
 
 
-def replace_types(function_code):
+def write_program_data_types(program, file_writer, monitor):
+    """Dumping program data types"""
+    dtm = program.getDataTypeManager()
+    data_type_writer = DataTypeWriter(dtm, file_writer)
+    data_type_list = []
+    for data_type in dtm.getAllDataTypes():
+        if ".h" not in data_type.getPathName().split('/')[1]:
+            data_type_list.append(data_type)
+    data_type_writer.write(data_type_list, monitor)
+    dtm.close()
+
+
+def replace_types(code):
     """Replacing all Ghidra types with types from intttypes.h and standart C types"""
     for old_type, new_type in TYPES_TO_REPLACE.items():
-        function_code = function_code.replace(old_type, new_type)
-    return function_code
+        code = code.replace(old_type, new_type)
+    return code
+
+
+def remove_stack_protection(code):
+    """Removal of stack protection from code"""
+    lines = code.split('\n')
+    for num, line in enumerate(lines):
+        if STACK_PROTECTOR_VARIABLE in line:
+            # if we have "if ..." with in_FS_OFFSET checking
+            # we must remove all "if" block - 4 lines (with ghidra comment)
+            if "if" in line:
+                lines.pop(num + 3)
+                lines.pop(num + 2)
+                lines.pop(num + 1)
+            lines.pop(num)
+    new_code = '\n'.join(lines)
+    return new_code
+
+
+def handle_function(code):
+    """Handling function code"""
+    code_replaced_types = replace_types(code)
+    if STACK_PROTECTOR_VARIABLE not in code_replaced_types:
+        return code_replaced_types
+    code_removed_stack_protection = remove_stack_protection(code_replaced_types)
+    return code_removed_stack_protection
 
 
 def get_nearest_lower_power_2(num):
@@ -79,14 +106,14 @@ def get_nearest_lower_power_2(num):
     return 2 ** floor(log2(num))
 
 
-def put_concat(file_writer, function_code, used_concats):
+def put_concat(file_writer, code, used_concats):
     """Puts CONCATXY functions into C code"""
-    concat_cnt = function_code.count("CONCAT")
+    concat_cnt = code.count("CONCAT")
     concat_idx = 0
     for _ in range(concat_cnt):
-        concat_idx = function_code.find("CONCAT", concat_idx) + CONCAT_LEN
-        first_size = int(function_code[concat_idx])
-        second_size = int(function_code[concat_idx + 1])
+        concat_idx = code.find("CONCAT", concat_idx) + CONCAT_LEN
+        first_size = int(code[concat_idx])
+        second_size = int(code[concat_idx + 1])
         if (first_size, second_size) in used_concats:
             continue
         first_inttype_size = get_nearest_lower_power_2(first_size * BYTE_SIZE)

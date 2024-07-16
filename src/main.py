@@ -31,11 +31,11 @@ def put_functions(program, file_writer, monitor):
         results = decompiler.decompileFunction(function, 0, monitor)
         decompiled_function = results.getDecompiledFunction()
         function_signature = decompiled_function.getSignature()
-        function_signature_replaced_types = tools.replace_types(function_signature)
+        function_signature_processed = tools.replace_types(function_signature)
         function_code = decompiled_function.getC()
-        function_code_replaced_types = tools.replace_types(function_code)
-        functions_code.append(function_code_replaced_types)
-        file_writer.println(function_signature_replaced_types + '\n')
+        function_code_processed = tools.handle_function(function_code)
+        functions_code.append(function_code_processed)
+        file_writer.println(function_signature_processed + '\n')
     used_concats = set()
     for function_code in functions_code:
         if "CONCAT" in function_code:

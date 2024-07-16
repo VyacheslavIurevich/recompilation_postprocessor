@@ -27,17 +27,23 @@ def export_c_code(binary_file_path, output_file_path):
         for lib in LIBRARY_LIST:
             c_file_writer.println(f"#include <{lib}>")
         tools.write_program_data_types(program, c_file_writer, flat_api.monitor)
-        used_concats = set()
+        functions_code = []
         for function in program.getFunctionManager().getFunctions(True):
             if tools.exclude_function(function):
                 continue
             results = decompiler.decompileFunction(function, 0, flat_api.monitor)
-            function_code = results.getDecompiledFunction().getC()
+            decompiled_function = results.getDecompiledFunction()
+            function_signature = decompiled_function.getSignature()
+            function_code = decompiled_function.getC()
             function_code_replaced_types = tools.replace_types(function_code)
-            if "CONCAT" in function_code_replaced_types:
+            functions_code.append(function_code_replaced_types)
+            c_file_writer.println(function_signature + '\n')
+        used_concats = set()
+        for function_code in functions_code:
+            if "CONCAT" in function_code:
                 used_concats = \
-                    tools.put_concat(c_file_writer, function_code_replaced_types, used_concats)
-            c_file_writer.println(function_code_replaced_types)
+                    tools.put_concat(c_file_writer, function_code, used_concats)
+            c_file_writer.println(function_code)
         c_file_writer.close()
         decompiler.closeProgram()
         decompiler.dispose()

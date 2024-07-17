@@ -1,6 +1,7 @@
 """Postprocessor main"""
 
 # pylint: disable=wrong-import-position, import-error
+from shutil import rmtree
 import pyhidra
 
 pyhidra.start()
@@ -57,6 +58,8 @@ def export_c_code(binary_file_path, output_file_path):
         tools.write_program_data_types(program, c_file_writer, flat_api.monitor)
         put_functions(program, c_file_writer, flat_api.monitor)
         c_file_writer.close()
+        project_folder = str(flat_api.getProjectRootFolder())[:-2]  # last two symbols are :/
+    rmtree(f"resources/in/{project_folder}")
 
 
 export_c_code("resources/in/bmp-header.out", "resources/out/test.c")

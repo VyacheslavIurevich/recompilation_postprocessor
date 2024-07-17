@@ -1,62 +1,26 @@
 """Postprocessor main"""
 
-# pylint: disable=wrong-import-position, import-error
+# pylint: disable=wrong-import-position, import-error, disable=wrong-import-order
 import pyhidra
-
-pyhidra.start()
-from java.io import File, PrintWriter
-from ghidra.app.decompiler import DecompileOptions, DecompInterface
 import tools
+from java.io import File, PrintWriter
 
 LIBRARY_LIST = ["stdio.h", "stdlib.h", "inttypes.h"]
-
-
-def init_decompiler(program):
-    """Decompiler initialization"""
-    options = DecompileOptions()
-    options.grabFromProgram(program)
-    decompiler = DecompInterface()
-    decompiler.setOptions(options)
-    decompiler.openProgram(program)
-    return decompiler
-
-
-def put_functions(program, file_writer, monitor):
-    """Puts all functions and their signatures into C code file"""
-    decompiler = init_decompiler(program)
-    functions_code = []
-    for function in program.getFunctionManager().getFunctions(True):
-        if tools.exclude_function(function):
-            continue
-        results = decompiler.decompileFunction(function, 0, monitor)
-        decompiled_function = results.getDecompiledFunction()
-        function_signature = decompiled_function.getSignature()
-        function_signature_replaced_types = tools.replace_types(function_signature)
-        function_code = decompiled_function.getC()
-        function_code_replaced_types = tools.replace_types(function_code)
-        functions_code.append(function_code_replaced_types)
-        file_writer.println(function_signature_replaced_types + '\n')
-    used_concats = set()
-    for function_code in functions_code:
-        if "CONCAT" in function_code:
-            used_concats = \
-                tools.put_concat(file_writer, function_code, used_concats)
-        file_writer.println(function_code)
-    decompiler.closeProgram()
-    decompiler.dispose()
 
 
 def export_c_code(binary_file_path, output_file_path):
     """Exporting c code to a file"""
     with pyhidra.open_program(binary_file_path) as flat_api:
         program = flat_api.getCurrentProgram()
+
         f = File(output_file_path)
         c_file_writer = PrintWriter(f)
         for lib in LIBRARY_LIST:
             c_file_writer.println(f"#include <{lib}>")
         tools.write_program_data_types(program, c_file_writer, flat_api.monitor)
-        put_functions(program, c_file_writer, flat_api.monitor)
+        tools.write_global_variables(program, c_file_writer)
+        tools.put_functions(program, c_file_writer, flat_api.monitor)
         c_file_writer.close()
 
 
-export_c_code("resources/in/bmp-header.out", "resources/out/test.c")
+export_c_code("resources/in/global_varible", "resources/out/test.c")

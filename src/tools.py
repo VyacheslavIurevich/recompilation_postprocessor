@@ -5,8 +5,9 @@
 from collections import OrderedDict
 from math import floor, log2
 import pyhidra
-
 pyhidra.start()
+from ghidra.program.model.scalar import Scalar
+from ghidra.app.decompiler import DecompileOptions, DecompInterface
 from ghidra.program.model.data import DataTypeWriter
 
 TYPES_TO_REPLACE = OrderedDict(uint="unsigned int",
@@ -79,6 +80,41 @@ def get_nearest_lower_power_2(num):
     return 2 ** floor(log2(num))
 
 
+def init_decompiler(program):
+    """Decompiler initialization"""
+    options = DecompileOptions()
+    options.grabFromProgram(program)
+    decompiler = DecompInterface()
+    decompiler.setOptions(options)
+    decompiler.openProgram(program)
+    return decompiler
+
+
+def put_functions(program, file_writer, monitor):
+    """Puts all functions and their signatures into C code file"""
+    decompiler = init_decompiler(program)
+    functions_code = []
+    for function in program.getFunctionManager().getFunctions(True):
+        if exclude_function(function):
+            continue
+        results = decompiler.decompileFunction(function, 0, monitor)
+        decompiled_function = results.getDecompiledFunction()
+        function_signature = decompiled_function.getSignature()
+        function_signature_replaced_types = replace_types(function_signature)
+        function_code = decompiled_function.getC()
+        function_code_replaced_types = replace_types(function_code)
+        functions_code.append(function_code_replaced_types)
+        file_writer.println(function_signature_replaced_types + '\n')
+    used_concats = set()
+    for function_code in functions_code:
+        if "CONCAT" in function_code:
+            used_concats = \
+                put_concat(file_writer, function_code, used_concats)
+        file_writer.println(function_code)
+    decompiler.closeProgram()
+    decompiler.dispose()
+
+
 def put_concat(file_writer, function_code, used_concats):
     """Puts CONCATXY functions into C code"""
     concat_cnt = function_code.count("CONCAT")
@@ -100,3 +136,29 @@ def put_concat(file_writer, function_code, used_concats):
         file_writer.println(concat_function)
         used_concats.add((first_size, second_size))
     return used_concats
+
+
+def write_global_variables(program, file_writer):
+    """Write global variables into C code"""
+    listing = program.getListing()
+    data = program.getMemory().getBlock(".data")
+    address_factory = program.getAddressFactory()
+
+    curent_address = data.getStart()
+    end = curent_address.addWrap(data.getSize())
+    while curent_address != end:
+        code_unit = listing.getCodeUnitAt(curent_address)
+        if code_unit.getMnemonicString() == "??":
+            curent_address = curent_address.addWrap(code_unit.getLength())
+            continue
+        if code_unit.getValueClass() == Scalar:
+            data_type_string = str(code_unit.getMnemonicString()) + " " +\
+                    str(code_unit.getLabel()) + " = " + str(code_unit.getValue()) + ";"
+            file_writer.println(data_type_string)
+        else:
+            pointer = listing.getCodeUnitAt(address_factory.getAddress(str(code_unit.getValue())))
+            if pointer.getLabel() != code_unit.getLabel():
+                data_type_string = str(code_unit.getMnemonicString()) + " " +\
+                    str(code_unit.getLabel()) + " = " + str(pointer.getLabel()) + ";"
+                file_writer.println(data_type_string)
+        curent_address = curent_address.add(code_unit.getLength())

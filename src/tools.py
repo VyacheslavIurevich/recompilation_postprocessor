@@ -84,9 +84,25 @@ def remove_stack_protection(code):
             # if we have "if ..." with in_FS_OFFSET checking
             # we must remove all "if" block - 4 lines (with ghidra comment)
             if "if" in line:
+                # if == is in the condition:
+                # lines[num] = "if ... == ... STACK_PROTECTOR_VARIABLE {"
+                # lines[num + 1] = "  return 0;"
+                # lines[num + 2] = "}"
+                # lines[num + 3] is Ghidra's comment
+                # lines[num + 4] = "__stack_chk_fail();"
+                # if != is in the condition:
+                # lines[num] = "if ... != ... STACK_PROTECTOR_VARIABLE {"
+                # lines[num + 1] is Ghidra's comment
+                # lines[num + 2] = "__stack_chk_fail();"
+                # lines[num + 3] = "}"
+                # lines[num + 4] = "return 0;" - we keep it
+                if "==" in line:
+                    lines[num + 1] = lines[num + 1][2:]
+                    lines.pop(num + 4)
                 lines.pop(num + 3)
                 lines.pop(num + 2)
-                lines.pop(num + 1)
+                if "!=" in line:
+                    lines.pop(num + 1)
             lines.pop(num)
     new_code = '\n'.join(lines)
     return new_code

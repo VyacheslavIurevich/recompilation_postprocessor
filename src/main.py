@@ -18,9 +18,14 @@ def export_c_code(binary_file_path, output_file_path):
         for lib in LIBRARY_LIST:
             c_file_writer.println(f"#include <{lib}>")
         tools.write_program_data_types(program, c_file_writer, flat_api.monitor)
-        tools.write_global_variables(program, c_file_writer)
+
+        tools.write_global_variables(program, c_file_writer, ".bss")
+        c_file_writer.println()
+        tools.write_global_variables(program, c_file_writer, ".rodata")
+        c_file_writer.println()
+        tools.write_global_variables(program, c_file_writer, ".data")
+        c_file_writer.println()
         tools.put_functions(program, c_file_writer, flat_api.monitor)
         c_file_writer.close()
 
-
-export_c_code("resources/in/global_varible", "resources/out/test.c")
+export_c_code("resources/in/bmp1_stack-protector", "resources/out/test1.c")

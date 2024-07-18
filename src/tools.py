@@ -7,8 +7,13 @@ from math import floor, log2
 import pyhidra
 pyhidra.start()
 from ghidra.program.model.scalar import Scalar
+from ghidra.program.model.address import Address
 from ghidra.app.decompiler import DecompileOptions, DecompInterface
 from ghidra.program.model.data import DataTypeWriter
+from ghidra.pcode.floatformat import BigFloat
+from ghidra.program.model.data import Array
+from java.lang import String
+
 
 TYPES_TO_REPLACE = OrderedDict(uint="unsigned int",
                                ushort="unsigned short",
@@ -138,27 +143,94 @@ def put_concat(file_writer, function_code, used_concats):
     return used_concats
 
 
-def write_global_variables(program, file_writer):
+def read_array(listing, code_unit):
+    """Reading an array from a listing"""
+    array = ""
+    element_count = code_unit.getNumComponents()
+    component_length = int(code_unit.getLength() / element_count)
+    if (str(code_unit.getMnemonicString()).count('[')) == 1:
+        for i in range(element_count):
+            element = code_unit.getComponentContaining(component_length * i).getValue()
+            if element is None:
+                return None
+            array += str(element) + ', '
+        return "{" + array[:-2] + "}"
+    for i in range(element_count):
+        current_array = read_array(listing, code_unit.getComponentContaining(component_length * i))
+        if current_array is None:
+            return None
+        array += current_array + ", "
+    return "{" +  array[:-2] + "}"
+
+# pylint: disable=too-many-locals, too-many-branches, too-many-statements
+def write_global_variables(program, file_writer, section):
     """Write global variables into C code"""
     listing = program.getListing()
-    data = program.getMemory().getBlock(".data")
+    data = program.getMemory().getBlock(section)
     address_factory = program.getAddressFactory()
 
     curent_address = data.getStart()
     end = curent_address.addWrap(data.getSize())
     while curent_address != end:
         code_unit = listing.getCodeUnitAt(curent_address)
-        if code_unit.getMnemonicString() == "??":
+        if code_unit.getMnemonicString() == "??" and\
+                (str(code_unit.getValue()) == "0x0" or code_unit.getValue() is None):
             curent_address = curent_address.addWrap(code_unit.getLength())
             continue
-        if code_unit.getValueClass() == Scalar:
-            data_type_string = str(code_unit.getMnemonicString()) + " " +\
-                    str(code_unit.getLabel()) + " = " + str(code_unit.getValue()) + ";"
-            file_writer.println(data_type_string)
+        if code_unit.getValueClass() == Scalar or code_unit.getValueClass() == BigFloat:
+            variable_declaration_string = str(code_unit.getMnemonicString()) + " " +\
+                str(code_unit.getLabel())
+            if code_unit.getValue() is not None:
+                variable_declaration_string += " = " + str(code_unit.getValue())
+            file_writer.println(variable_declaration_string + ';')
+        elif code_unit.getValueClass() == Address:
+            variable_declaration_string = str(code_unit.getMnemonicString()) + " " +\
+                str(code_unit.getLabel())
+            if code_unit.getValue() is not None:
+                pointer_address = address_factory.getAddress(str(code_unit.getValue()))
+                pointer = listing.getCodeUnitAt(pointer_address)
+                if pointer.getLabel() != code_unit.getLabel():
+                    variable_declaration_string += " = &" + str(pointer.getLabel())
+                else:
+                    curent_address = curent_address.add(code_unit.getLength())
+                    continue
+            file_writer.println(variable_declaration_string + ';')
+        elif code_unit.getValueClass() == String:
+            if '[' in str(code_unit.getMnemonicString()):
+                array_type = str(code_unit.getMnemonicString())
+                variable_declaration_string = array_type[:array_type.index("[")] + " " +\
+                    str(code_unit.getLabel()) + array_type[array_type.index("["):]
+            else:
+                variable_declaration_string = "char " + str(code_unit.getLabel())
+            if code_unit.getValue() is not None:
+                value_of_string = str(code_unit.getValue())
+                label = str(code_unit.getLabel()[2:-9]).replace('_', ' ')
+                if len(label) != 0 and label in " ".join(str(code_unit.getValue()).split()):
+                    curent_address = curent_address.add(code_unit.getLength())
+                    continue
+            variable_declaration_string += f"[{len(value_of_string)}]" +\
+                ' = "' + value_of_string + '"'
+            file_writer.println(repr(variable_declaration_string)[1:-1] + ";")
+        elif code_unit.getValueClass() == Array:
+            array_type = str(code_unit.getMnemonicString())
+            string_array = read_array(listing, code_unit)
+            variable_declaration_string = array_type[:array_type.index("[")] + " " +\
+                str(code_unit.getLabel()) + array_type[array_type.index("["):]
+            if string_array is not None:
+                variable_declaration_string += " = " + string_array
+            file_writer.println(variable_declaration_string + ';')
+        elif code_unit.getMnemonicString() == "??":
+            variable_declaration_string = "char " +  str(code_unit.getLabel())
+            string_array = ""
+            while True:
+                string_array += chr(code_unit.getValue().getValue())
+                if int(str(listing.getCodeUnitAt(curent_address.next()).getValue()), HEX_BASE) == 0:
+                    break
+                curent_address = curent_address.next()
+                code_unit = listing.getCodeUnitAt(curent_address)
+            variable_declaration_string += f"[{len(string_array)}]" + ' = "' + string_array + '";'
+            file_writer.println(repr(variable_declaration_string)[1:-1])
         else:
-            pointer = listing.getCodeUnitAt(address_factory.getAddress(str(code_unit.getValue())))
-            if pointer.getLabel() != code_unit.getLabel():
-                data_type_string = str(code_unit.getMnemonicString()) + " " +\
-                    str(code_unit.getLabel()) + " = " + str(pointer.getLabel()) + ";"
-                file_writer.println(data_type_string)
+            variable_declaration_string = f'/* !!! Unhandled global varible, type "{code_unit}", \
+                address "{code_unit.getAddress()}"!!! */'
         curent_address = curent_address.add(code_unit.getLength())

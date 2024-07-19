@@ -4,10 +4,10 @@
 
 from collections import OrderedDict
 from math import floor, log2
+import re
 import pyhidra
 pyhidra.start()
 from ghidra.program.model.scalar import Scalar
-from ghidra.program.model.address import Address
 from ghidra.app.decompiler import DecompileOptions, DecompInterface
 from ghidra.program.model.data import DataTypeWriter
 from ghidra.pcode.floatformat import BigFloat
@@ -22,7 +22,6 @@ CONCAT_LEN = 6  # = len("CONCAT")
 BYTE_SIZE = 8
 HEX_BASE = 16
 RUNTIME_PREFIX = '_'
-
 
 def function_in_runtime(function):
     """Check if input function is from C Runtime"""
@@ -148,7 +147,7 @@ def read_array(listing, code_unit):
     array = ""
     element_count = code_unit.getNumComponents()
     component_length = int(code_unit.getLength() / element_count)
-    if (str(code_unit.getMnemonicString()).count('[')) == 1:
+    if (str(code_unit.getDataType().getName()).count('[')) == 1:
         for i in range(element_count):
             element = code_unit.getComponentContaining(component_length * i).getValue()
             if element is None:
@@ -162,75 +161,114 @@ def read_array(listing, code_unit):
         array += current_array + ", "
     return "{" +  array[:-2] + "}"
 
+
+def get_pointer_declaration(code_unit, program):
+    """Get the pointer declaration string"""
+    address_factory = program.getAddressFactory()
+    listing = program.getListing()
+    variable_declaration_string = code_unit.getDataType().getName() + " " +\
+        str(code_unit.getLabel())
+    if code_unit.getValue() is not None:
+        pointer_address = address_factory.getAddress(str(code_unit.getValue()))
+        pointer = listing.getCodeUnitAt(pointer_address)
+        if pointer.getLabel() != code_unit.getLabel() and\
+            re.sub(r'[^\w\s]', '_', pointer.getLabel())[:-9] != code_unit.getLabel()[:-9]:
+            variable_declaration_string += " = &" + pointer.getLabel()
+        else:
+            return None
+    return variable_declaration_string + ';'
+
+def get_array_declaration(code_unit, listing):
+    """Get the array declaration string"""
+    array_type = code_unit.getDataType().getName()
+    string_array = read_array(listing, code_unit)
+    variable_declaration_string = array_type[:array_type.index("[")] + " " +\
+        str(code_unit.getLabel()) + array_type[array_type.index("["):]
+    if string_array is not None:
+        variable_declaration_string += " = " + string_array
+    return variable_declaration_string + ';'
+
+
+def get_string_declaration(code_unit):
+    """Get the string of the string declaration"""
+    variable_declaration_string = "char " + str(code_unit.getLabel())
+    if code_unit.getValue() is not None:
+        value_of_string = str(code_unit.getValue())
+        label = str(code_unit.getLabel()[2:-9]).replace('_', ' ')
+        variable_declaration_string += f"[{len(value_of_string) + 1}]" +\
+            ' = "' + value_of_string + '"'
+        if len(label) != 0 and label in " ".join(str(code_unit.getValue()).split()):
+            return None
+    elif code_unit.isArray():
+        array_type = code_unit.getDataType().getName()
+        variable_declaration_string += array_type[array_type.index("["):]
+    else:
+        variable_declaration_string = "char * " + str(code_unit.getLabel())
+    return variable_declaration_string + ';'
+
+
+def get_undefined_string_declaration(code_unit, listing, address):
+    """Get an undeclared type string declaration string"""
+    variable_declaration_string = "char " +  str(code_unit.getLabel())
+    string_array = ""
+    while True:
+        string_array += chr(code_unit.getValue().getValue())
+        if int(str(listing.getCodeUnitAt(address.next()).getValue()), HEX_BASE) == 0:
+            break
+        address = address.next()
+        code_unit = listing.getCodeUnitAt(address)
+    variable_declaration_string += f"[{len(string_array)}]" + ' = "' + string_array + '";'
+    return (variable_declaration_string, address)
+
+def get_variable_declaration(code_unit):
+    """Get the variable declaration string"""
+    variable_declaration_string = code_unit.getDataType().getName() + " " +\
+        str(code_unit.getLabel())
+    if code_unit.getValue() is not None:
+        variable_declaration_string += " = " + str(code_unit.getValue())
+    return variable_declaration_string + ';'
+
 # pylint: disable=too-many-locals, too-many-branches, too-many-statements
 def write_global_variables(program, file_writer, section):
     """Write global variables into C code"""
     listing = program.getListing()
     data = program.getMemory().getBlock(section)
-    address_factory = program.getAddressFactory()
 
-    curent_address = data.getStart()
-    end = curent_address.addWrap(data.getSize())
-    while curent_address != end:
-        code_unit = listing.getCodeUnitAt(curent_address)
-        if code_unit.getMnemonicString() == "??" and\
-                (str(code_unit.getValue()) == "0x0" or code_unit.getValue() is None):
-            curent_address = curent_address.addWrap(code_unit.getLength())
+    current_address = data.getStart()
+    end = current_address.add(data.getSize())
+    while current_address != end:
+        code_unit = listing.getCodeUnitAt(current_address)
+        if (code_unit.getDataType().getName() == "undefined" and\
+                (str(code_unit.getValue()) == "0x0" or code_unit.getValue() is None)) or\
+                len(code_unit.getSymbols()) > 1:
+            current_address = current_address.add(code_unit.getLength())
             continue
-        if code_unit.getValueClass() == Scalar or code_unit.getValueClass() == BigFloat:
-            variable_declaration_string = str(code_unit.getMnemonicString()) + " " +\
-                str(code_unit.getLabel())
-            if code_unit.getValue() is not None:
-                variable_declaration_string += " = " + str(code_unit.getValue())
-            file_writer.println(variable_declaration_string + ';')
-        elif code_unit.getValueClass() == Address:
-            variable_declaration_string = str(code_unit.getMnemonicString()) + " " +\
-                str(code_unit.getLabel())
-            if code_unit.getValue() is not None:
-                pointer_address = address_factory.getAddress(str(code_unit.getValue()))
-                pointer = listing.getCodeUnitAt(pointer_address)
-                if pointer.getLabel() != code_unit.getLabel():
-                    variable_declaration_string += " = &" + str(pointer.getLabel())
-                else:
-                    curent_address = curent_address.add(code_unit.getLength())
-                    continue
-            file_writer.println(variable_declaration_string + ';')
+        if re.search(r'\W+', code_unit.getLabel()):
+            current_address = current_address.add(code_unit.getLength())
+            continue
+        if code_unit.isPointer():
+            variable_declaration_string = get_pointer_declaration(code_unit, program)
+            if variable_declaration_string is not None:
+                file_writer.println(variable_declaration_string)
         elif code_unit.getValueClass() == String:
-            if '[' in str(code_unit.getMnemonicString()):
-                array_type = str(code_unit.getMnemonicString())
-                variable_declaration_string = array_type[:array_type.index("[")] + " " +\
-                    str(code_unit.getLabel()) + array_type[array_type.index("["):]
-            else:
-                variable_declaration_string = "char " + str(code_unit.getLabel())
-            if code_unit.getValue() is not None:
-                value_of_string = str(code_unit.getValue())
-                label = str(code_unit.getLabel()[2:-9]).replace('_', ' ')
-                if len(label) != 0 and label in " ".join(str(code_unit.getValue()).split()):
-                    curent_address = curent_address.add(code_unit.getLength())
-                    continue
-            variable_declaration_string += f"[{len(value_of_string)}]" +\
-                ' = "' + value_of_string + '"'
-            file_writer.println(repr(variable_declaration_string)[1:-1] + ";")
+            variable_declaration_string = get_string_declaration(code_unit)
+            if variable_declaration_string is not None:
+                file_writer.println(repr(variable_declaration_string)[1:-1])
         elif code_unit.getValueClass() == Array:
-            array_type = str(code_unit.getMnemonicString())
-            string_array = read_array(listing, code_unit)
-            variable_declaration_string = array_type[:array_type.index("[")] + " " +\
-                str(code_unit.getLabel()) + array_type[array_type.index("["):]
-            if string_array is not None:
-                variable_declaration_string += " = " + string_array
-            file_writer.println(variable_declaration_string + ';')
-        elif code_unit.getMnemonicString() == "??":
-            variable_declaration_string = "char " +  str(code_unit.getLabel())
-            string_array = ""
-            while True:
-                string_array += chr(code_unit.getValue().getValue())
-                if int(str(listing.getCodeUnitAt(curent_address.next()).getValue()), HEX_BASE) == 0:
-                    break
-                curent_address = curent_address.next()
-                code_unit = listing.getCodeUnitAt(curent_address)
-            variable_declaration_string += f"[{len(string_array)}]" + ' = "' + string_array + '";'
+            variable_declaration_string = get_array_declaration(code_unit, listing)
+            if variable_declaration_string is not None:
+                file_writer.println(variable_declaration_string)
+        elif code_unit.getDataType().getName() == "undefined":
+            (variable_declaration_string, current_address) =\
+                get_undefined_string_declaration(code_unit, listing, current_address)
             file_writer.println(repr(variable_declaration_string)[1:-1])
+        elif code_unit.getValueClass() == Scalar or code_unit.getValueClass() == BigFloat or\
+            "undefined" in code_unit.getDataType().getName():
+            variable_declaration_string = get_variable_declaration(code_unit)
+            file_writer.println(variable_declaration_string)
         else:
-            variable_declaration_string = f'/* !!! Unhandled global varible, type "{code_unit}", \
-                address "{code_unit.getAddress()}"!!! */'
-        curent_address = curent_address.add(code_unit.getLength())
+            variable_declaration_string = f'/* !!! Unhandled global varible,\
+                type "{code_unit.getDataType().getName()}",\n name "{code_unit.getLabel()}",\
+                address "{code_unit.getAddress()}", value "{code_unit.getValue()}"!!! */'
+            file_writer.println(variable_declaration_string)
+        current_address = current_address.add(code_unit.getLength())

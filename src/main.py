@@ -5,7 +5,7 @@ import pyhidra
 import tools
 from java.io import File, PrintWriter
 
-LIBRARY_LIST = ["stdio.h", "stdlib.h", "inttypes.h"]
+LIBRARY_LIST = ["stdio.h", "stdlib.h", "inttypes.h", "stdbool.h"]
 
 
 def export_c_code(binary_file_path, output_file_path):
@@ -28,4 +28,4 @@ def export_c_code(binary_file_path, output_file_path):
         tools.put_functions(program, c_file_writer, flat_api.monitor)
         c_file_writer.close()
 
-export_c_code("resources/in/test.out", "resources/out/test7.c")
+export_c_code("resources/in/global_variable", "resources/out/test.c")

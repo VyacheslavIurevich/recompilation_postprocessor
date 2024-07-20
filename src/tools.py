@@ -7,10 +7,8 @@ from math import floor, log2
 import re
 import pyhidra
 pyhidra.start()
-from ghidra.program.model.scalar import Scalar
 from ghidra.app.decompiler import DecompileOptions, DecompInterface
 from ghidra.program.model.data import DataTypeWriter
-from ghidra.pcode.floatformat import BigFloat
 from java.lang import String
 
 
@@ -150,7 +148,7 @@ def read_array(code_unit):
             element = code_unit.getComponent(i).getValue()
             if element is None:
                 return None
-            array += str(element) + ', '
+            array += f'{str(element)}, '
         return "{" + array[:-2] + "}"
     for i in range(element_count):
         current_array = read_array(code_unit.getComponent(i))
@@ -167,8 +165,6 @@ def read_structure(code_unit, program):
     listing = program.getListing()
     for i in range(code_unit.getNumComponents()):
         component = code_unit.getComponent(i)
-        # print(component.getDataType().getName(), component.getLabel(),\
-        #     component.getValue(), component.getAddress())
         if component.isArray():
             current_component_value = read_array(component)
         elif component.getDataType().getName() == "char":
@@ -189,8 +185,8 @@ def get_pointer_declaration(code_unit, program):
     """Get pointer declaration string"""
     address_factory = program.getAddressFactory()
     listing = program.getListing()
-    variable_declaration_string = code_unit.getDataType().getName() + " " +\
-        str(code_unit.getLabel())
+    variable_declaration_string =\
+        f'{code_unit.getDataType().getName()} {str(code_unit.getLabel())}'
     if code_unit.getValue() is not None:
         pointer_address = address_factory.getAddress(str(code_unit.getValue()))
         pointer = listing.getCodeUnitAt(pointer_address)
@@ -205,8 +201,9 @@ def get_array_declaration(code_unit):
     """Get array declaration string"""
     array_type = code_unit.getDataType().getName()
     string_array = read_array(code_unit)
-    variable_declaration_string = array_type[:array_type.index("[")] + " " +\
-        str(code_unit.getLabel()) + array_type[array_type.index("["):]
+    variable_declaration_string =\
+        f'{array_type[:array_type.index("[")]} {str(code_unit.getLabel())}' +\
+        array_type[array_type.index("["):]
     if string_array is not None:
         variable_declaration_string += " = " + string_array
     return variable_declaration_string + ';'
@@ -217,19 +214,18 @@ def get_string_declaration(code_unit):
     variable_declaration_string = "char " + str(code_unit.getLabel())
     if code_unit.getValue() is not None:
         value_of_string = str(code_unit.getValue())
-        variable_declaration_string += f"[{len(value_of_string) + 1}]" +\
-            ' = "' + value_of_string + '"'
+        variable_declaration_string += f'[{len(value_of_string) + 1}] = "{value_of_string}"'
     elif code_unit.isArray():
         array_type = code_unit.getDataType().getName()
         variable_declaration_string += array_type[array_type.index("["):]
     else:
-        variable_declaration_string = "char * " + str(code_unit.getLabel())
+        variable_declaration_string = f"char * {str(code_unit.getLabel())}"
     return variable_declaration_string + ';'
 
 
 def get_undefined_string_declaration(code_unit, listing, address):
     """Get undeclared type string declaration string"""
-    variable_declaration_string = "char " +  str(code_unit.getLabel())
+    variable_declaration_string = f"char {str(code_unit.getLabel())}"
     string_array = ""
     while True:
         string_array += chr(code_unit.getValue().getValue())
@@ -237,38 +233,50 @@ def get_undefined_string_declaration(code_unit, listing, address):
             break
         address = address.next()
         code_unit = listing.getCodeUnitAt(address)
-    variable_declaration_string += f"[{len(string_array) + 1}]" + ' = "' + string_array + '";'
+    variable_declaration_string += f'[{len(string_array) + 1}] = "{string_array}";'
     return (variable_declaration_string, address)
 
 
 def get_variable_declaration(code_unit):
     """Get variable declaration string"""
-    variable_declaration_string = code_unit.getDataType().getName() + " " +\
-        str(code_unit.getLabel())
+    variable_declaration_string = f'{code_unit.getDataType().getName()} {code_unit.getLabel()}'
     if code_unit.getValue() is not None:
-        variable_declaration_string += " = " + str(code_unit.getValue())
+        variable_declaration_string += f" = {code_unit.getValue()}"
     return variable_declaration_string + ';'
 
 
 def get_character_declaration(code_unit):
     """Get character declaration string"""
-    variable_declaration_string = code_unit.getDataType().getName() + " " +\
-        str(code_unit.getLabel())
+    variable_declaration_string = f"{code_unit.getDataType().getName()} \
+{str(code_unit.getLabel())}"
     if code_unit.getValue() is not None:
-        variable_declaration_string += " = '" + str(code_unit.getValue()) + "'"
+        variable_declaration_string += f" = '{str(code_unit.getValue()) }'"
     return variable_declaration_string + ';'
 
 
 def get_structure_declaration(code_unit, program):
     """Get structure declaration string"""
-    variable_declaration_string = code_unit.getDataType().getName()+ " " +\
-        code_unit.getLabel()
+    variable_declaration_string = f"{code_unit.getDataType().getName()} \
+{code_unit.getLabel()}"
     component = code_unit.getComponent(0)
     if component.getValue() is not None:
-        variable_declaration_string += " = " + read_structure(code_unit, program)
+        variable_declaration_string += f" = {read_structure(code_unit, program)}"
     return variable_declaration_string + ';'
 
-# pylint: disable=too-many-branches
+def exclude_global_variable(code_unit):
+    """Exclusion of global variables"""
+    if (code_unit.getDataType().getName() == "undefined" and\
+        (str(code_unit.getValue()) == "0x0" or code_unit.getValue() is None)) or\
+        len(code_unit.getSymbols()) > 1:
+        return True
+    if re.search(r'[^\w\s]', code_unit.getLabel()):
+        return True
+    for reference in code_unit.getReferenceIteratorTo():
+        if reference.getFromAddress().getAddressSpace().getName() == "_elfSectionHeaders":
+            return True
+    return False
+
+
 def write_global_variables(program, file_writer, section):
     """Write global variables into C code"""
     listing = program.getListing()
@@ -278,18 +286,13 @@ def write_global_variables(program, file_writer, section):
     end = current_address.add(data.getSize())
     while current_address != end:
         code_unit = listing.getCodeUnitAt(current_address)
-        if (code_unit.getDataType().getName() == "undefined" and\
-                (str(code_unit.getValue()) == "0x0" or code_unit.getValue() is None)) or\
-                len(code_unit.getSymbols()) > 1:
+        if exclude_global_variable(code_unit):
             current_address = current_address.add(code_unit.getLength())
             continue
-        if re.search(r'[^\w\s]', code_unit.getLabel()):
-            current_address = current_address.add(code_unit.getLength())
-            continue
+
         if code_unit.isPointer():
             variable_declaration_string = get_pointer_declaration(code_unit, program)
             if variable_declaration_string is not None:
-                print(variable_declaration_string)
                 file_writer.println(variable_declaration_string)
         elif code_unit.getValueClass() == String:
             variable_declaration_string = get_string_declaration(code_unit)
@@ -306,16 +309,10 @@ def write_global_variables(program, file_writer, section):
         elif code_unit.getDataType().getName() == "char":
             variable_declaration_string = get_character_declaration(code_unit)
             file_writer.println(variable_declaration_string)
-        elif code_unit.getValueClass() == Scalar or code_unit.getValueClass() == BigFloat or\
-            "undefined" in code_unit.getDataType().getName():
-            variable_declaration_string = get_variable_declaration(code_unit)
-            file_writer.println(variable_declaration_string)
         elif code_unit.isStructure():
             variable_declaration_string = get_structure_declaration(code_unit, program)
             file_writer.println(variable_declaration_string)
         else:
-            variable_declaration_string = f'/* !!! Unhandled global varible,\
-                type "{code_unit.getDataType().getName()}",\n name "{code_unit.getLabel()}",\
-                address "{code_unit.getAddress()}", value "{code_unit.getValue()}"!!! */'
+            variable_declaration_string = get_variable_declaration(code_unit)
             file_writer.println(variable_declaration_string)
         current_address = current_address.add(code_unit.getLength())

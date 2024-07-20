@@ -34,6 +34,8 @@ def put_functions(program, file_writer, monitor):
         function_signature = decompiled_function.getSignature()
         function_signature_processed = tools.replace_types(function_signature)
         function_code = decompiled_function.getC()
+        if tools.is_single_return(function_code, function_signature):
+            continue
         function_code_processed = tools.handle_function(function_code)
         functions_code.append(function_code_processed)
         file_writer.println(function_signature_processed + '\n')
@@ -62,4 +64,4 @@ def export_c_code(binary_file_path, output_file_path):
     rmtree(f"resources/in/{project_folder}")
 
 
-export_c_code("resources/in/bmp-header.out", "resources/out/test.c")
+export_c_code("resources/in/test.out", "resources/out/test.c")

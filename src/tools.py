@@ -143,3 +143,16 @@ def put_concat(file_writer, code, used_concats):
         file_writer.println(concat_function)
         used_concats.add((first_size, second_size))
     return used_concats
+
+
+def line_from_body(line, signature):
+    """Line is from function body if it is not a comment, is not empty, 
+    is not a { or } and is not its signature"""
+    return not (line.startswith(("//", "/*")) or line == ''
+                or line in "{}" or line == signature[:-1])
+
+
+def is_single_return(code, signature):
+    """If function body consists of only one return;, it is service function"""
+    body = [line for line in code.split('\n') if line_from_body(line, signature)]
+    return len(body) == 1 and body[0].replace(' ', '') == "return;"

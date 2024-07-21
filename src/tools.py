@@ -1,7 +1,6 @@
 """Tools for checking functions and exporting decompiled program to a .c file"""
 
-# pylint: disable=wrong-import-order, wrong-import-position, import-error
-
+# pylint: disable=wrong-import-position, import-error, disable=wrong-import-order
 from collections import OrderedDict
 from math import floor, log2
 import re

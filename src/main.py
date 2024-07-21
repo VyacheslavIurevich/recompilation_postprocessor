@@ -1,12 +1,15 @@
 """Postprocessor main"""
 
-# pylint: disable=wrong-import-position, import-error, disable=wrong-import-order
+# pylint: disable=wrong-import-position, import-error
+from shutil import rmtree
 import pyhidra
 import tools
 from java.io import File, PrintWriter
 
+
 LIBRARY_LIST = ("stdio.h", "stdlib.h", "inttypes.h", "stdbool.h")
 SECTIONS = (".bss", ".rodata", ".data")
+
 
 def export_c_code(binary_file_path, output_file_path):
     """Exporting c code to a file"""
@@ -23,6 +26,8 @@ def export_c_code(binary_file_path, output_file_path):
             c_file_writer.println()
         tools.put_functions(program, c_file_writer, flat_api.monitor)
         c_file_writer.close()
+        project_folder = str(flat_api.getProjectRootFolder())[:-2]  # last two symbols are :/
+    rmtree(f"resources/in/{project_folder}")
 
 
-export_c_code("resources/in/global_variable", "resources/out/test.c")
+export_c_code("resources/in/test.out", "resources/out/test.c")

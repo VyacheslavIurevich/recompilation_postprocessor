@@ -6,11 +6,11 @@ from collections import OrderedDict
 from math import floor, log2
 import re
 import pyhidra
+
 pyhidra.start()
 from ghidra.app.decompiler import DecompileOptions, DecompInterface
 from ghidra.program.model.data import DataTypeWriter
 from java.lang import String
-
 
 TYPES_TO_REPLACE = OrderedDict(uint="unsigned int",
                                ushort="unsigned short",
@@ -19,6 +19,7 @@ CONCAT_LEN = 6  # = len("CONCAT")
 BYTE_SIZE = 8
 HEX_BASE = 16
 RUNTIME_PREFIX = '_'
+
 
 def function_in_runtime(function):
     """Check if input function is from C Runtime"""
@@ -155,11 +156,11 @@ def read_array(code_unit):
         if current_array is None:
             return None
         array += current_array + ", "
-    return "{" +  array[:-2] + "}"
+    return "{" + array[:-2] + "}"
 
 
 def read_structure(code_unit, program):
-    """Reading a structer from a listing"""
+    """Reading a structure from a listing"""
     struct = ""
     address_factory = program.getAddressFactory()
     listing = program.getListing()
@@ -178,14 +179,14 @@ def read_structure(code_unit, program):
         else:
             current_component_value = str(component.getValue())
         struct += f"{current_component_value}, "
-    return "{" +  struct[:-2] + "}"
+    return "{" + struct[:-2] + "}"
 
 
 def get_pointer_declaration(code_unit, program):
     """Get pointer declaration string"""
     address_factory = program.getAddressFactory()
     listing = program.getListing()
-    variable_declaration_string =\
+    variable_declaration_string = \
         f'{code_unit.getDataType().getName()} {str(code_unit.getLabel())}'
     if code_unit.getValue() is not None:
         pointer_address = address_factory.getAddress(str(code_unit.getValue()))
@@ -201,8 +202,8 @@ def get_array_declaration(code_unit):
     """Get array declaration string"""
     array_type = code_unit.getDataType().getName()
     string_array = read_array(code_unit)
-    variable_declaration_string =\
-        f'{array_type[:array_type.index("[")]} {str(code_unit.getLabel())}' +\
+    variable_declaration_string = \
+        f'{array_type[:array_type.index("[")]} {str(code_unit.getLabel())}' + \
         array_type[array_type.index("["):]
     if string_array is not None:
         variable_declaration_string += " = " + string_array
@@ -234,7 +235,7 @@ def get_undefined_string_declaration(code_unit, listing, address):
         address = address.next()
         code_unit = listing.getCodeUnitAt(address)
     variable_declaration_string += f'[{len(string_array) + 1}] = "{string_array}";'
-    return (variable_declaration_string, address)
+    return variable_declaration_string, address
 
 
 def get_variable_declaration(code_unit):
@@ -250,7 +251,7 @@ def get_character_declaration(code_unit):
     variable_declaration_string = f"{code_unit.getDataType().getName()} \
 {str(code_unit.getLabel())}"
     if code_unit.getValue() is not None:
-        variable_declaration_string += f" = '{str(code_unit.getValue()) }'"
+        variable_declaration_string += f" = '{str(code_unit.getValue())}'"
     return variable_declaration_string + ';'
 
 
@@ -263,11 +264,12 @@ def get_structure_declaration(code_unit, program):
         variable_declaration_string += f" = {read_structure(code_unit, program)}"
     return variable_declaration_string + ';'
 
+
 def exclude_global_variable(code_unit):
     """Exclusion of global variables"""
-    if (code_unit.getDataType().getName() == "undefined" and\
-        (str(code_unit.getValue()) == "0x0" or code_unit.getValue() is None)) or\
-        len(code_unit.getSymbols()) > 1:
+    if (code_unit.getDataType().getName() == "undefined" and
+        (str(code_unit.getValue()) == "0x0" or code_unit.getValue() is None)) or \
+            len(code_unit.getSymbols()) > 1:
         return True
     if re.search(r'[^\w\s]', code_unit.getLabel()):
         return True
@@ -303,7 +305,7 @@ def write_global_variables(program, file_writer, section):
             if variable_declaration_string is not None:
                 file_writer.println(variable_declaration_string)
         elif code_unit.getDataType().getName() == "undefined":
-            (variable_declaration_string, current_address) =\
+            (variable_declaration_string, current_address) = \
                 get_undefined_string_declaration(code_unit, listing, current_address)
             file_writer.println(repr(variable_declaration_string)[1:-1])
         elif code_unit.getDataType().getName() == "char":

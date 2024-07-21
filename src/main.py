@@ -1,6 +1,6 @@
 """Postprocessor main"""
 
-# pylint: disable=wrong-import-position, import-error
+# pylint: disable=wrong-import-position, import-error, wrong-import-order
 from shutil import rmtree
 import pyhidra
 import tools

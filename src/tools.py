@@ -272,17 +272,10 @@ def get_undefined_declaration(code_unit, listing, address):
     """Get undeclared type string declaration string"""
     variable_declaration_string = f"undefined {str(code_unit.getLabel())}"
     string_array = ""
-    # print(code_unit.getLabel(), code_unit.getValue())
     counter = 0
     while True:
         counter += 1
         string_array += f"{str(code_unit.getValue().getValue())}, "
-        # print(code_unit.getValue(), code_unit.getAddress())
-        # print(address.next())
-        # print(listing.getCodeUnitAt(address.next()))
-        # a = listing.getCodeUnitAt(address.next())
-        # if int(str(listing.getCodeUnitAt(address.next()).getValue()), HEX_BASE) == 0\
-        #     or listing.getCodeUnitAt(address.next()).getLabel() is not None:
         if listing.getCodeUnitAt(address.next()) is None or\
             listing.getCodeUnitAt(address.next()).getLabel() is not None:
             break

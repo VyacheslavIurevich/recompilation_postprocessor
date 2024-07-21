@@ -294,18 +294,21 @@ def get_string_declaration(code_unit):
     return variable_declaration_string + ';'
 
 
-def get_undefined_string_declaration(code_unit, listing, address):
+def get_undefined_declaration(code_unit, listing, address):
     """Get undeclared type string declaration string"""
-    variable_declaration_string = f"char {str(code_unit.getLabel())}"
+    variable_declaration_string = f"undefined {str(code_unit.getLabel())}"
     string_array = ""
+    counter = 0
     while True:
-        string_array += chr(code_unit.getValue().getValue())
-        if int(str(listing.getCodeUnitAt(address.next()).getValue()), HEX_BASE) == 0:
+        counter += 1
+        string_array += f"{str(code_unit.getValue().getValue())}, "
+        if listing.getCodeUnitAt(address.next()) is None or\
+            listing.getCodeUnitAt(address.next()).getLabel() is not None:
             break
         address = address.next()
         code_unit = listing.getCodeUnitAt(address)
-    variable_declaration_string += f'[{len(string_array) + 1}] = "{string_array}";'
-    return variable_declaration_string, address
+    variable_declaration_string += f'[{counter}] = {{{string_array[:-2]}}};'
+    return (variable_declaration_string, address)
 
 
 def get_variable_declaration(code_unit):
@@ -327,8 +330,8 @@ def get_character_declaration(code_unit):
 
 def get_structure_declaration(code_unit, program):
     """Get structure declaration string"""
-    variable_declaration_string = f"{code_unit.getDataType().getName()} \
-{code_unit.getLabel()}"
+    variable_declaration_string =\
+        f"{code_unit.getDataType().getName()} {code_unit.getLabel()}"
     component = code_unit.getComponent(0)
     if component.getValue() is not None:
         variable_declaration_string += f" = {read_structure(code_unit, program)}"
@@ -337,9 +340,7 @@ def get_structure_declaration(code_unit, program):
 
 def exclude_global_variable(code_unit):
     """Exclusion of global variables"""
-    if (code_unit.getDataType().getName() == "undefined" and
-        (str(code_unit.getValue()) == "0x0" or code_unit.getValue() is None)) or \
-            len(code_unit.getSymbols()) > 1:
+    if code_unit.getLabel() is None or len(code_unit.getSymbols()) > 1:
         return True
     if re.search(r'[^\w\s]', code_unit.getLabel()):
         return True
@@ -376,7 +377,7 @@ def write_global_variables(program, file_writer, section):
                 file_writer.println(variable_declaration_string)
         elif code_unit.getDataType().getName() == "undefined":
             (variable_declaration_string, current_address) = \
-                get_undefined_string_declaration(code_unit, listing, current_address)
+                get_undefined_declaration(code_unit, listing, current_address)
             file_writer.println(repr(variable_declaration_string)[1:-1])
         elif code_unit.getDataType().getName() == "char":
             variable_declaration_string = get_character_declaration(code_unit)

@@ -134,31 +134,26 @@ def init_decompiler(program):
     return decompiler
 
 
-def put_functions(program, file_writer, monitor):
-    """Puts all functions and their signatures into C code file"""
-    decompiler = init_decompiler(program)
-    functions_code = []
-    for function in program.getFunctionManager().getFunctions(True):
-        if exclude_function(function):
-            continue
-        results = decompiler.decompileFunction(function, 0, monitor)
-        decompiled_function = results.getDecompiledFunction()
-        function_signature = decompiled_function.getSignature()
-        function_signature_processed = replace_types(function_signature)
-        function_code = decompiled_function.getC()
-        if is_single_return(function_code, function_signature):
-            continue
-        function_code_processed = handle_function(function_code)
-        functions_code.append(function_code_processed)
-        file_writer.println(function_signature_processed + '\n')
-    used_concats = set()
-    for function_code in functions_code:
-        if "CONCAT" in function_code:
-            used_concats = \
-                put_concat(file_writer, function_code, used_concats)
-        file_writer.println(function_code)
-    decompiler.closeProgram()
-    decompiler.dispose()
+def line_from_body(line, signature):
+    """Line is from function body if it is not a comment, is not empty, 
+    is not a { or } and is not its signature"""
+    return not (line.startswith(("//", "/*")) or line == ''
+                or line in "{}" or line == signature[:-1])
+
+
+def is_single_return(code, signature):
+    """If function body consists of only one return;, it is service function"""
+    body = [line.replace(' ', '') for line in code.split('\n') if line_from_body(line, signature)]
+    return len(body) == 1 and body[0] == "return;"
+
+
+def calls_single_return(code, signature, single_return_functions):
+    """If function calls single return function, it is service function"""
+    body = [line.replace(' ', '') for line in code.split('\n') if line_from_body(line, signature)]
+    for function in single_return_functions:
+        if function + "();" in body:
+            return True
+    return False
 
 
 def put_concat(file_writer, code, used_concats):
@@ -182,6 +177,37 @@ def put_concat(file_writer, code, used_concats):
         file_writer.println(concat_function)
         used_concats.add((first_size, second_size))
     return used_concats
+
+
+def put_functions(program, file_writer, monitor):
+    """Puts all functions and their signatures into C code file"""
+    decompiler = init_decompiler(program)
+    functions_code = []
+    single_return_functions = []
+    for function in program.getFunctionManager().getFunctions(True):
+        if exclude_function(function):
+            continue
+        results = decompiler.decompileFunction(function, 0, monitor)
+        decompiled_function = results.getDecompiledFunction()
+        function_signature = decompiled_function.getSignature()
+        function_signature_processed = replace_types(function_signature)
+        function_code = decompiled_function.getC()
+        if is_single_return(function_code, function_signature):
+            single_return_functions.append(function.getName())
+            continue
+        if calls_single_return(function_code, function_signature, single_return_functions):
+            continue
+        function_code_processed = handle_function(function_code)
+        functions_code.append(function_code_processed)
+        file_writer.println(function_signature_processed + '\n')
+    used_concats = set()
+    for function_code in functions_code:
+        if "CONCAT" in function_code:
+            used_concats = \
+                put_concat(file_writer, function_code, used_concats)
+        file_writer.println(function_code)
+    decompiler.closeProgram()
+    decompiler.dispose()
 
 
 def read_array(code_unit):
@@ -363,16 +389,3 @@ def write_global_variables(program, file_writer, section):
             variable_declaration_string = get_variable_declaration(code_unit)
             file_writer.println(variable_declaration_string)
         current_address = current_address.add(code_unit.getLength())
-
-
-def line_from_body(line, signature):
-    """Line is from function body if it is not a comment, is not empty, 
-    is not a { or } and is not its signature"""
-    return not (line.startswith(("//", "/*")) or line == ''
-                or line in "{}" or line == signature[:-1])
-
-
-def is_single_return(code, signature):
-    """If function body consists of only one return;, it is service function"""
-    body = [line for line in code.split('\n') if line_from_body(line, signature)]
-    return len(body) == 1 and body[0].replace(' ', '') == "return;"

@@ -13,7 +13,12 @@ from java.lang import String
 
 TYPES_TO_REPLACE = OrderedDict(uint="unsigned int",
                                ushort="unsigned short",
-                               ulong="unsigned long")
+                               ulong="unsigned long",
+                               undefined2="uint16_t",
+                               undefined3="uint32_t",
+                               undefined5="uint64_t",
+                               undefined6="uint64_t",
+                               undefined7="uint64_t")
 CONCAT_LEN = 6  # = len("CONCAT")
 BYTE_SIZE = 8
 HEX_BASE = 16
@@ -302,13 +307,13 @@ def get_undefined_declaration(code_unit, listing, address):
     while True:
         counter += 1
         string_array += f"{str(code_unit.getValue().getValue())}, "
-        if listing.getCodeUnitAt(address.next()) is None or\
-            listing.getCodeUnitAt(address.next()).getLabel() is not None:
+        if listing.getCodeUnitAt(address.next()) is None or \
+                listing.getCodeUnitAt(address.next()).getLabel() is not None:
             break
         address = address.next()
         code_unit = listing.getCodeUnitAt(address)
     variable_declaration_string += f'[{counter}] = {{{string_array[:-2]}}};'
-    return (variable_declaration_string, address)
+    return variable_declaration_string, address
 
 
 def get_variable_declaration(code_unit):
@@ -330,7 +335,7 @@ def get_character_declaration(code_unit):
 
 def get_structure_declaration(code_unit, program):
     """Get structure declaration string"""
-    variable_declaration_string =\
+    variable_declaration_string = \
         f"{code_unit.getDataType().getName()} {code_unit.getLabel()}"
     component = code_unit.getComponent(0)
     if component.getValue() is not None:

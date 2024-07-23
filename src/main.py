@@ -29,4 +29,4 @@ def export_c_code(binary_file_path, output_file_path):
     rmtree(f"resources/in/{project_folder}")
 
 
-export_c_code("resources/in/array_sort", "resources/out/test.c")
+export_c_code("resources/in/avl", "resources/out/avl5.c")

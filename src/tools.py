@@ -73,9 +73,8 @@ def put_concat(file_writer, code, used_concats):
     return used_concats
 
 
-def put_functions(program, file_writer, monitor):
-    """Puts all functions and their signatures into C code file"""
-    decompiler = init_decompiler(program)
+def put_functions_signatures(program, file_writer, monitor, decompiler):
+    """Puts functions' signatures to C code file"""
     functions_code = []
     single_return_functions = []
     for function in program.getFunctionManager().getFunctions(True):
@@ -89,12 +88,17 @@ def put_functions(program, file_writer, monitor):
         if function_code_handling.is_single_return(function_code, function_signature):
             single_return_functions.append(function.getName())
             continue
-        if function_code_handling.calls_single_return\
-            (function_code, function_signature, single_return_functions):
+        if function_code_handling.calls_single_return(function_code,
+                                                      function_signature, single_return_functions):
             continue
         function_code_processed = function_code_handling.handle_function(function_code)
         functions_code.append(function_code_processed)
         file_writer.println(function_signature_processed + '\n')
+    return functions_code
+
+
+def put_functions_code(functions_code, file_writer, decompiler):
+    """Puts functions' code to C code file"""
     used_concats = set()
     for function_code in functions_code:
         if "CONCAT" in function_code:

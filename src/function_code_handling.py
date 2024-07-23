@@ -1,5 +1,6 @@
 """This module contains functions that handle functions' decompiled code"""
 from collections import OrderedDict
+from fnmatch import fnmatch
 
 TYPES_TO_REPLACE = OrderedDict(uint="unsigned int",
                                ushort="unsigned short",
@@ -21,6 +22,8 @@ def replace_types(code):
 
 def remove_stack_protection(code):
     """Removes stack protection from function code"""
+    if STACK_PROTECTOR_VARIABLE not in code:
+        return code
     lines = code.split('\n')
     for num, line in enumerate(lines):
         if STACK_PROTECTOR_VARIABLE in line:
@@ -47,19 +50,28 @@ def remove_stack_protection(code):
                 if "!=" in line:
                     lines.pop(num + 1)
             lines.pop(num)
-    new_code = '\n'.join(lines)
-    return new_code
+    return '\n'.join(lines)
 
 
-PATTERNS_AND_HANDLERS = dict([(STACK_PROTECTOR_VARIABLE, remove_stack_protection)])
+def replace_cast_to_memset(code):
+    """Replaces some cast expressions to memset"""
+    lines = code.split('\n')
+    for line in lines:
+        if fnmatch(line, "[*] = (*  [[]*[]]);"):
+            ...
+        if fnmatch(line, "[*] (* ([*]) [[]*[]])(*) = (* [[]*[]])*;"):
+            ...
+    return '\n'.join(lines)
+
+
+PATTERN_HANDLERS = (remove_stack_protection, replace_cast_to_memset)
 
 
 def handle_function(code):
     """Handling function code"""
     code = replace_types(code)
-    for pattern, handler in PATTERNS_AND_HANDLERS.items():
-        if pattern in code:
-            code = handler(code)
+    for pattern_handler in PATTERN_HANDLERS:
+        code = pattern_handler(code)
     return code
 
 

@@ -162,8 +162,8 @@ def exclude_global_variable(code_unit):
     return False
 
 
-def write_global_variables(program, file_writer, section):
-    """Writes global variables into C code file"""
+def put_global_variables(program, file_writer, section):
+    """Puts global variables into C code file"""
     listing = program.getListing()
     data = program.getMemory().getBlock(section)
 

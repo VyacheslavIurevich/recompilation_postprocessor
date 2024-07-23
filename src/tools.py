@@ -14,7 +14,7 @@ CONCAT_LEN = 6  # = len("CONCAT")
 BYTE_SIZE = 8
 
 
-def write_program_data_types(program, file_writer, monitor):
+def put_program_data_types(program, file_writer, monitor):
     """Dumps program data types"""
     dtm = program.getDataTypeManager()
     data_type_writer = DataTypeWriter(dtm, file_writer)

@@ -20,9 +20,9 @@ def export_c_code(binary_file_path, output_file_path):
         c_file_writer = PrintWriter(f)
         for lib in LIBRARY_LIST:
             c_file_writer.println(f"#include <{lib}>")
-        tools.write_program_data_types(program, c_file_writer, flat_api.monitor)
+        tools.put_program_data_types(program, c_file_writer, flat_api.monitor)
         for section in SECTIONS:
-            global_variables_handling.write_global_variables(program, c_file_writer, section)
+            global_variables_handling.put_global_variables(program, c_file_writer, section)
             c_file_writer.println()
         decompiler = tools.init_decompiler(program)
         functions_code = tools.put_functions_signatures(program,

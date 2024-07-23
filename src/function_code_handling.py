@@ -81,5 +81,3 @@ def calls_single_return(code, signature, single_return_functions):
         if function + "();" in body:
             return True
     return False
-
-

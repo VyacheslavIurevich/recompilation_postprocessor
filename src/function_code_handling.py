@@ -1,6 +1,7 @@
 """This module contains functions that handle functions' decompiled code"""
 from collections import OrderedDict
 from fnmatch import fnmatch
+import re
 
 TYPES_TO_REPLACE = OrderedDict(uint="unsigned int",
                                ushort="unsigned short",
@@ -56,11 +57,22 @@ def remove_stack_protection(code):
 def replace_cast_to_memset(code):
     """Replaces some cast expressions to memset"""
     lines = code.split('\n')
-    for line in lines:
-        if fnmatch(line, "[*] = (*  [[]*[]]);"):
-            ...
-        if fnmatch(line, "[*] (* ([*]) [[]*[]])(*) = (* [[]*[]])*;"):
-            ...
+    for num, line in enumerate(lines):
+        if fnmatch(line, "[*] = (*  [[]*[]])*;"):
+            num_pattern = r'(?<![_,a-zA-Z])\b(\d+|\d+x\d+)\b'
+            array_size, value = re.findall(num_pattern, line)
+            var_pattern = r'\b([a-zA-Z]\w*)\b'
+            var = re.findall(var_pattern, line)[0]
+            lines[num] = f"memset(&{var}, {value}, {array_size})"
+
+        if fnmatch(line, "[*](* ([*]) [[]*[]])(*) = (*  [[]*[]])*;"):
+            num_pattern = r'(?<![_,a-zA-Z])\b(\d+|\d+x\d+)\b'
+            matches = re.findall(num_pattern, line)
+            array_size, offset, value = matches[0], matches[1], matches[3]
+            var_pattern = r'\b([a-zA-Z]\w*)\b'
+            var = re.findall(var_pattern, line)[1]
+            lines[num] = f"memset({var} + {offset}, {value}, {array_size})"
+
     return '\n'.join(lines)
 
 

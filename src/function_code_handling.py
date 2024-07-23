@@ -1,7 +1,6 @@
 """This module contains functions that handle functions' decompiled code"""
 from collections import OrderedDict
 
-STACK_PROTECTOR_VARIABLE = "in_FS_OFFSET"
 TYPES_TO_REPLACE = OrderedDict(uint="unsigned int",
                                ushort="unsigned short",
                                ulong="unsigned long",
@@ -10,6 +9,7 @@ TYPES_TO_REPLACE = OrderedDict(uint="unsigned int",
                                undefined5="uint64_t",
                                undefined6="uint64_t",
                                undefined7="uint64_t")
+STACK_PROTECTOR_VARIABLE = "in_FS_OFFSET"
 
 
 def replace_types(code):
@@ -51,13 +51,16 @@ def remove_stack_protection(code):
     return new_code
 
 
+PATTERNS_AND_HANDLERS = dict([(STACK_PROTECTOR_VARIABLE, remove_stack_protection)])
+
+
 def handle_function(code):
     """Handling function code"""
-    code_replaced_types = replace_types(code)
-    if STACK_PROTECTOR_VARIABLE not in code_replaced_types:
-        return code_replaced_types
-    code_removed_stack_protection = remove_stack_protection(code_replaced_types)
-    return code_removed_stack_protection
+    code = replace_types(code)
+    for pattern, handler in PATTERNS_AND_HANDLERS.items():
+        if pattern in code:
+            code = handler(code)
+    return code
 
 
 def line_from_body(line, signature):

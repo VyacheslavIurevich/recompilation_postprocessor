@@ -59,6 +59,7 @@ def exclude_function(function):
     """Dumping program data types"""
     entry_point = function.getEntryPoint()
     code_unit_at = function.getProgram().getListing().getCodeUnitAt(entry_point)
+    print(type(code_unit_at))
     return function_in_runtime(function) \
         or function_is_plt(function) \
         or code_unit_at.getMnemonicString() == "??"
@@ -266,7 +267,7 @@ def get_pointer_declaration(code_unit, program):
     if code_unit.getValue() is not None:
         pointer_address = address_factory.getAddress(str(code_unit.getValue()))
         pointer = listing.getCodeUnitAt(pointer_address)
-        if pointer.getLabel() != code_unit.getLabel():
+        if pointer is not None and pointer.getLabel() != code_unit.getLabel():
             variable_declaration_string += f" = {pointer.getLabel()}"
         else:
             return None
@@ -301,19 +302,37 @@ def get_string_declaration(code_unit):
 
 def get_undefined_declaration(code_unit, listing, address):
     """Get undeclared type string declaration string"""
-    variable_declaration_string = f"undefined {str(code_unit.getLabel())}"
+    code_unit_label = str(code_unit.getLabel())
+    variable_declaration_string = f"undefined {code_unit_label}"
+    string_comment = "// "
     string_array = ""
     counter = 0
     while True:
-        counter += 1
-        string_array += f"{str(code_unit.getValue().getValue())}, "
-        if listing.getCodeUnitAt(address.next()) is None or \
-                listing.getCodeUnitAt(address.next()).getLabel() is not None:
+        if code_unit.getValue() is not None:
+            # a = code_unit.getBytes()
+            for byte in code_unit.getBytes():
+                counter += 1
+                string_array += f"{str(byte)}, "
+                try:
+                    string_comment += chr(byte)
+                except ValueError:
+                    string_comment += " "
+        else:
+            counter += 1
+            string_array += "0, "
+            string_comment += " "
+        current_address = address.add(code_unit.getLength())
+        if listing.getCodeUnitAt(current_address) is None or \
+                listing.getCodeUnitAt(current_address).getLabel() is not None:
             break
-        address = address.next()
+        address = current_address
         code_unit = listing.getCodeUnitAt(address)
-    variable_declaration_string += f'[{counter}] = {{{string_array[:-2]}}};'
-    return variable_declaration_string, address
+    if string_array.count('0') == counter:
+        variable_declaration_string = f"undefined * {code_unit_label};"
+        string_comment = ""
+    else:
+        variable_declaration_string += f'[{counter}] = {{{string_array[:-2]}}};'
+    return variable_declaration_string, address, code_unit, string_comment
 
 
 def get_variable_declaration(code_unit):
@@ -326,8 +345,8 @@ def get_variable_declaration(code_unit):
 
 def get_character_declaration(code_unit):
     """Get character declaration string"""
-    variable_declaration_string = f"{code_unit.getDataType().getName()} \
-{str(code_unit.getLabel())}"
+    variable_declaration_string =\
+    f"{code_unit.getDataType().getName()} {str(code_unit.getLabel())}"
     if code_unit.getValue() is not None:
         variable_declaration_string += f" = '{str(code_unit.getValue())}'"
     return variable_declaration_string + ';'
@@ -364,10 +383,13 @@ def write_global_variables(program, file_writer, section):
     end = current_address.add(data.getSize())
     while current_address != end:
         code_unit = listing.getCodeUnitAt(current_address)
+
         if exclude_global_variable(code_unit):
             current_address = current_address.add(code_unit.getLength())
             continue
 
+        # print(code_unit.getDataType().getName(), code_unit.getLabel(),\
+        #  code_unit.getValue(), code_unit.getAddress())
         if code_unit.isPointer():
             variable_declaration_string = get_pointer_declaration(code_unit, program)
             if variable_declaration_string is not None:
@@ -381,9 +403,10 @@ def write_global_variables(program, file_writer, section):
             if variable_declaration_string is not None:
                 file_writer.println(variable_declaration_string)
         elif code_unit.getDataType().getName() == "undefined":
-            (variable_declaration_string, current_address) = \
+            (variable_declaration_string, current_address, code_unit, comment) = \
                 get_undefined_declaration(code_unit, listing, current_address)
-            file_writer.println(repr(variable_declaration_string)[1:-1])
+            file_writer.println(variable_declaration_string)
+            file_writer.println(repr(comment)[1:-1])
         elif code_unit.getDataType().getName() == "char":
             variable_declaration_string = get_character_declaration(code_unit)
             file_writer.println(variable_declaration_string)

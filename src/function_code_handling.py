@@ -50,6 +50,7 @@ def remove_stack_protection(code):
     new_code = '\n'.join(lines)
     return new_code
 
+
 def handle_function(code):
     """Handling function code"""
     code_replaced_types = replace_types(code)
@@ -73,11 +74,10 @@ def is_single_return(code, signature):
     return len(body) == 1 and body[0] == "return;"
 
 
-def calls_single_return(code, signature, single_return_functions):
+def exclude_function_code(function, single_return_functions, monitor):
     """If function calls single return function, it is service function. 
     Function checks if function calls single return function."""
-    body = [line.replace(' ', '') for line in code.split('\n') if line_from_body(line, signature)]
-    for function in single_return_functions:
-        if function + "();" in body:
+    for single_return_function in single_return_functions:
+        if function in single_return_function.getCallingFunctions(monitor):
             return True
     return False

@@ -21,12 +21,12 @@ def export_c_code(binary_file_path, output_file_path):
         for lib in LIBRARY_LIST:
             c_file_writer.println(f"#include <{lib}>")
         tools.put_program_data_types(program, c_file_writer, flat_api.monitor)
-        for section in SECTIONS:
-            global_variables_handling.put_global_variables(program, c_file_writer, section)
-            c_file_writer.println()
         decompiler = tools.init_decompiler(program)
         functions_code = tools.put_functions_signatures(program,
                                                         c_file_writer, flat_api.monitor, decompiler)
+        for section in SECTIONS:
+            global_variables_handling.put_global_variables(program, c_file_writer, section)
+            c_file_writer.println()
         tools.put_functions_code(functions_code, c_file_writer, decompiler)
         c_file_writer.close()
         project_folder = str(flat_api.getProjectRootFolder())[:-2]  # last two symbols are :/

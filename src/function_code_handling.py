@@ -50,6 +50,14 @@ def remove_stack_protection(code):
     new_code = '\n'.join(lines)
     return new_code
 
+def handle_function(code):
+    """Handling function code"""
+    code_replaced_types = replace_types(code)
+    if STACK_PROTECTOR_VARIABLE not in code_replaced_types:
+        return code_replaced_types
+    code_removed_stack_protection = remove_stack_protection(code_replaced_types)
+    return code_removed_stack_protection
+
 
 def line_from_body(line, signature):
     """Line is from function body if it is not a comment, is not empty, 
@@ -75,10 +83,3 @@ def calls_single_return(code, signature, single_return_functions):
     return False
 
 
-def handle_function(code):
-    """Handling function code"""
-    code_replaced_types = replace_types(code)
-    if STACK_PROTECTOR_VARIABLE not in code_replaced_types:
-        return code_replaced_types
-    code_removed_stack_protection = remove_stack_protection(code_replaced_types)
-    return code_removed_stack_protection

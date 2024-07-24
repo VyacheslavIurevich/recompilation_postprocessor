@@ -33,4 +33,4 @@ def export_c_code(binary_file_path, output_file_path):
     rmtree(f"resources/in/{project_folder}")
 
 
-export_c_code("resources/in/bmp1", "resources/out/test.c")
+export_c_code("resources/in/calculator", "resources/out/calculator.c")

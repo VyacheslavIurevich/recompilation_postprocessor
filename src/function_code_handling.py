@@ -1,15 +1,26 @@
 """This module contains functions that handle functions' decompiled code"""
+import fnmatch
+import re
+from math import ceil, log2
 from collections import OrderedDict
 
 STACK_PROTECTOR_VARIABLE = "in_FS_OFFSET"
 TYPES_TO_REPLACE = OrderedDict(uint="unsigned int",
                                ushort="unsigned short",
                                ulong="unsigned long",
-                               undefined2="uint16_t",
                                undefined3="uint32_t",
                                undefined5="uint64_t",
                                undefined6="uint64_t",
-                               undefined7="uint64_t")
+                               undefined7="uint64_t",
+                               int3="uint32_t",
+                               int5="uint64_t",
+                               int6="uint64_t",
+                               int7="uint64_t")
+
+
+def get_nearest_lower_power_2(num):
+    """Rounds a number to nearest lower power of 2"""
+    return 2 ** ceil(log2(num))
 
 
 def replace_types(code):
@@ -50,12 +61,31 @@ def remove_stack_protection(code):
     new_code = '\n'.join(lines)
     return new_code
 
+
+def replace_x_y_(code):
+    """Replacing variable references, of the form ._x_y_"""
+    lines = code.split('\n')
+    for num, line in enumerate(lines):
+        if fnmatch.fnmatch(line, "*._[0-9]*_[0-9]*_*"):
+            match = re.findall(r'[\W][\w\.]*\._\d*_\d_', line)
+            for i in match:
+                current_variable = i[1:]
+                last_value = current_variable.split('.')[-1]
+                numbers = last_value.split("_")
+                lines[num] = lines[num].replace(i[1:],\
+                f"*(uint{get_nearest_lower_power_2(8 * int(numbers[2]))}_t *)"
+                f"((unsigned char *)&{current_variable[:-(len(last_value) + 1)]} + {numbers[1]})")
+    new_code = '\n'.join(lines)
+    return new_code
+
+
 def handle_function(code):
     """Handling function code"""
     code_replaced_types = replace_types(code)
-    if STACK_PROTECTOR_VARIABLE not in code_replaced_types:
-        return code_replaced_types
-    code_removed_stack_protection = remove_stack_protection(code_replaced_types)
+    code_change_x_y_ = replace_x_y_(code_replaced_types)
+    if STACK_PROTECTOR_VARIABLE not in code_change_x_y_:
+        return code_change_x_y_
+    code_removed_stack_protection = remove_stack_protection(code_change_x_y_)
     return code_removed_stack_protection
 
 

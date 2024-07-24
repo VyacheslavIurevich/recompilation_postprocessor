@@ -1,7 +1,6 @@
 """Tools for checking functions and exporting decompiled program to a .c file"""
 
 # pylint: disable=wrong-import-position, import-error, wrong-import-order
-from math import floor, log2
 import function_code_handling
 import function_handling
 import pyhidra
@@ -45,11 +44,6 @@ def exclude_function(function):
         or code_unit_at.getMnemonicString() == "??"
 
 
-def get_nearest_lower_power_2(num):
-    """Rounds a number to nearest lower power of 2"""
-    return 2 ** floor(log2(num))
-
-
 def put_concat(file_writer, code, used_concats):
     """Puts CONCATXY functions into C code"""
     concat_cnt = code.count("CONCAT")
@@ -60,8 +54,10 @@ def put_concat(file_writer, code, used_concats):
         second_size = int(code[concat_idx + 1])
         if (first_size, second_size) in used_concats:
             continue
-        first_inttype_size = get_nearest_lower_power_2(first_size * BYTE_SIZE)
-        second_inttype_size = get_nearest_lower_power_2(second_size * BYTE_SIZE)
+        first_inttype_size =\
+            function_code_handling.get_nearest_lower_power_2(first_size * BYTE_SIZE)
+        second_inttype_size =\
+            function_code_handling.get_nearest_lower_power_2(second_size * BYTE_SIZE)
         concat_name = f"unsigned long CONCAT{first_size}{second_size}"
         concat_args = f"(uint{first_inttype_size}_t a, uint{second_inttype_size}_t b)\n"
         concat_body = \

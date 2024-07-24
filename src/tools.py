@@ -82,10 +82,10 @@ def put_functions_signatures(program, file_writer, monitor, decompiler):
         function_signature_processed = function_code_handling.replace_types(function_signature)
         function_code = decompiled_function.getC()
         if function_code_handling.is_single_return(function_code, function_signature):
-            single_return_functions.append(function.getName())
+            single_return_functions.append(function)
             continue
-        if function_code_handling.calls_single_return(function_code,
-                                                      function_signature, single_return_functions):
+        if function_code_handling.exclude_function_code(function,
+                                                        single_return_functions, monitor):
             continue
         function_code_processed = function_code_handling.handle_function(function_code)
         functions_code.append(function_code_processed)

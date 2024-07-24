@@ -2,8 +2,9 @@
 import re
 from math import ceil, log2
 from collections import OrderedDict
+from fnmatch import fnmatch
+import re
 
-STACK_PROTECTOR_VARIABLE = "in_FS_OFFSET"
 TYPES_TO_REPLACE = OrderedDict(uint="unsigned int",
                                ushort="unsigned short",
                                ulong="unsigned long",
@@ -15,6 +16,9 @@ TYPES_TO_REPLACE = OrderedDict(uint="unsigned int",
                                int5="uint64_t",
                                int6="uint64_t",
                                int7="uint64_t")
+
+
+STACK_PROTECTOR_VARIABLE = "in_FS_OFFSET"
 
 
 def get_nearest_lower_power_2(num):
@@ -31,6 +35,8 @@ def replace_types(code):
 
 def remove_stack_protection(code):
     """Removes stack protection from function code"""
+    if STACK_PROTECTOR_VARIABLE not in code:
+        return code
     lines = code.split('\n')
     for num, line in enumerate(lines):
         if STACK_PROTECTOR_VARIABLE in line:
@@ -57,56 +63,77 @@ def remove_stack_protection(code):
                 if "!=" in line:
                     lines.pop(num + 1)
             lines.pop(num)
-    new_code = '\n'.join(lines)
-    return new_code
+    return '\n'.join(lines)
+
+
+def replace_cast_to_memset(code):
+    """Replaces some cast expressions to memset"""
+    lines = code.split('\n')
+    for num, line in enumerate(lines):
+        if fnmatch(line, "[*] = (*  [[]*[]])*;"):
+            num_pattern = r'(?<![_,a-zA-Z])\b(\d+|\d+x\d+)\b'
+            array_size, value = re.findall(num_pattern, line)
+            var_pattern = r'\b([a-zA-Z]\w*)\b'
+            var = re.findall(var_pattern, line)[0]
+            lines[num] = f"memset(&{var}, {value}, {array_size})"
+
+        if fnmatch(line, "[*](* ([*]) [[]*[]])(*) = (*  [[]*[]])*;"):
+            num_pattern = r'(?<![_,a-zA-Z])\b(\d+|\d+x\d+)\b'
+            matches = re.findall(num_pattern, line)
+            array_size, offset, value = matches[0], matches[1], matches[3]
+            var_pattern = r'\b([a-zA-Z]\w*)\b'
+            var = re.findall(var_pattern, line)[1]
+            lines[num] = f"memset({var} + {offset}, {value}, {array_size})"
+
+    return '\n'.join(lines)
 
 
 def replace_x_y_(code):
-    """Replacing variable references, of the form ._x_y_"""
-    lines = code.split('\n')
-    for num, line in enumerate(lines):
-        match = re.findall(r'[\W][\w\.]*\._\d*_\d_', line)
-        if match:
-            for i in match:
-                current_variable = i[1:]
-                last_value = current_variable.split('.')[-1]
-                numbers = last_value.split("_")
-                lines[num] = lines[num].replace(i[1:],\
-                f"*(uint{get_nearest_lower_power_2(8 * int(numbers[2]))}_t *)"
-                f"((unsigned char *)&{current_variable[:-(len(last_value) + 1)]} + {numbers[1]})")
-    new_code = '\n'.join(lines)
-    return new_code
+  """Replacing variable references, of the form ._x_y_"""
+  lines = code.split('\n')
+  for num, line in enumerate(lines):
+      match = re.findall(r'[\W][\w\.]*\._\d*_\d_', line)
+      if match:
+          for i in match:
+              current_variable = i[1:]
+              last_value = current_variable.split('.')[-1]
+              numbers = last_value.split("_")
+              lines[num] = lines[num].replace(i[1:],\
+              f"*(uint{get_nearest_lower_power_2(8 * int(numbers[2]))}_t *)"
+              f"((unsigned char *)&{current_variable[:-(len(last_value) + 1)]} + {numbers[1]})")
+  new_code = '\n'.join(lines)
+  return new_code
+  
+
+PATTERN_HANDLERS = (remove_stack_protection, replace_x_y_)
 
 
 def handle_function(code):
     """Handling function code"""
-    code_replaced_types = replace_types(code)
-    code_change_x_y_ = replace_x_y_(code_replaced_types)
-    if STACK_PROTECTOR_VARIABLE not in code_change_x_y_:
-        return code_change_x_y_
-    code_removed_stack_protection = remove_stack_protection(code_change_x_y_)
-    return code_removed_stack_protection
+    code = replace_types(code)
+    for pattern_handler in PATTERN_HANDLERS:
+        code = pattern_handler(code)
+    return code
 
 
 def line_from_body(line, signature):
-    """Line is from function body if it is not a comment, is not empty, 
+    """Line is from function body if it is not a comment, is not empty,
     is not a { or } and is not its signature. Function checks that line is from body"""
     return not (line.startswith(("//", "/*")) or line == ''
                 or line in "{}" or line == signature[:-1])
 
 
 def is_single_return(code, signature):
-    """If function body consists of single return;, it is service function. 
+    """If function body consists of single return;, it is service function.
     Function checks if function consists of single return"""
     body = [line.replace(' ', '') for line in code.split('\n') if line_from_body(line, signature)]
     return len(body) == 1 and body[0] == "return;"
 
 
-def calls_single_return(code, signature, single_return_functions):
-    """If function calls single return function, it is service function. 
+def exclude_function_code(function, single_return_functions, monitor):
+    """If function calls single return function, it is service function.
     Function checks if function calls single return function."""
-    body = [line.replace(' ', '') for line in code.split('\n') if line_from_body(line, signature)]
-    for function in single_return_functions:
-        if function + "();" in body:
+    for single_return_function in single_return_functions:
+        if function in single_return_function.getCallingFunctions(monitor):
             return True
     return False

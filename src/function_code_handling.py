@@ -3,7 +3,6 @@ import re
 from math import ceil, log2
 from collections import OrderedDict
 from fnmatch import fnmatch
-import re
 
 TYPES_TO_REPLACE = OrderedDict(uint="unsigned int",
                                ushort="unsigned short",
@@ -89,21 +88,21 @@ def replace_cast_to_memset(code):
 
 
 def replace_x_y_(code):
-  """Replacing variable references, of the form ._x_y_"""
-  lines = code.split('\n')
-  for num, line in enumerate(lines):
-      match = re.findall(r'[\W][\w\.]*\._\d*_\d_', line)
-      if match:
-          for i in match:
-              current_variable = i[1:]
-              last_value = current_variable.split('.')[-1]
-              numbers = last_value.split("_")
-              lines[num] = lines[num].replace(i[1:],\
-              f"*(uint{get_nearest_lower_power_2(8 * int(numbers[2]))}_t *)"
-              f"((unsigned char *)&{current_variable[:-(len(last_value) + 1)]} + {numbers[1]})")
-  new_code = '\n'.join(lines)
-  return new_code
-  
+    """Replacing variable references, of the form ._x_y_"""
+    lines = code.split('\n')
+    for num, line in enumerate(lines):
+        match = re.findall(r'[\W][\w\.]*\._\d*_\d_', line)
+        if match:
+            for i in match:
+                current_variable = i[1:]
+                last_value = current_variable.split('.')[-1]
+                numbers = last_value.split("_")
+                lines[num] = lines[num].replace(i[1:],\
+                f"*(uint{get_nearest_lower_power_2(8 * int(numbers[2]))}_t *)"
+                f"((unsigned char *)&{current_variable[:-(len(last_value) + 1)]} + {numbers[1]})")
+    new_code = '\n'.join(lines)
+    return new_code
+
 
 PATTERN_HANDLERS = (remove_stack_protection, replace_x_y_)
 

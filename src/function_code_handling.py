@@ -1,5 +1,4 @@
 """This module contains functions that handle functions' decompiled code"""
-import fnmatch
 import re
 from math import ceil, log2
 from collections import OrderedDict
@@ -66,8 +65,8 @@ def replace_x_y_(code):
     """Replacing variable references, of the form ._x_y_"""
     lines = code.split('\n')
     for num, line in enumerate(lines):
-        if fnmatch.fnmatch(line, "*._[0-9]*_[0-9]*_*"):
-            match = re.findall(r'[\W][\w\.]*\._\d*_\d_', line)
+        match = re.findall(r'[\W][\w\.]*\._\d*_\d_', line)
+        if match:
             for i in match:
                 current_variable = i[1:]
                 last_value = current_variable.split('.')[-1]

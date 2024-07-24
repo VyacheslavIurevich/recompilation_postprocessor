@@ -76,7 +76,7 @@ def replace_cast_to_memset(code):
     return '\n'.join(lines)
 
 
-PATTERN_HANDLERS = (remove_stack_protection, replace_cast_to_memset)
+PATTERN_HANDLERS = (remove_stack_protection,)
 
 
 def handle_function(code):
@@ -88,21 +88,21 @@ def handle_function(code):
 
 
 def line_from_body(line, signature):
-    """Line is from function body if it is not a comment, is not empty, 
+    """Line is from function body if it is not a comment, is not empty,
     is not a { or } and is not its signature. Function checks that line is from body"""
     return not (line.startswith(("//", "/*")) or line == ''
                 or line in "{}" or line == signature[:-1])
 
 
 def is_single_return(code, signature):
-    """If function body consists of single return;, it is service function. 
+    """If function body consists of single return;, it is service function.
     Function checks if function consists of single return"""
     body = [line.replace(' ', '') for line in code.split('\n') if line_from_body(line, signature)]
     return len(body) == 1 and body[0] == "return;"
 
 
 def exclude_function_code(function, single_return_functions, monitor):
-    """If function calls single return function, it is service function. 
+    """If function calls single return function, it is service function.
     Function checks if function calls single return function."""
     for single_return_function in single_return_functions:
         if function in single_return_function.getCallingFunctions(monitor):

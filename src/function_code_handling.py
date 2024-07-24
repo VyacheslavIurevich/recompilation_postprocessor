@@ -57,19 +57,17 @@ def remove_stack_protection(code):
 def replace_cast_to_memset(code):
     """Replaces some cast expressions to memset"""
     lines = code.split('\n')
+    num_pattern = r"(?<!\w)\d*|0x\d*"
+    var_pattern = r"(?<!\w)[^\d]\w*"
     for num, line in enumerate(lines):
         if fnmatch(line, "[*] = (*  [[]*[]])*;"):
-            num_pattern = r'(?<![_,a-zA-Z])\b(\d+|\d+x\d+)\b'
             array_size, value = re.findall(num_pattern, line)
-            var_pattern = r'\b([a-zA-Z]\w*)\b'
             var = re.findall(var_pattern, line)[0]
             lines[num] = f"memset(&{var}, {value}, {array_size})"
 
         if fnmatch(line, "[*](* ([*]) [[]*[]])(*) = (*  [[]*[]])*;"):
-            num_pattern = r'(?<![_,a-zA-Z])\b(\d+|\d+x\d+)\b'
             matches = re.findall(num_pattern, line)
             array_size, offset, value = matches[0], matches[1], matches[3]
-            var_pattern = r'\b([a-zA-Z]\w*)\b'
             var = re.findall(var_pattern, line)[1]
             lines[num] = f"memset({var} + {offset}, {value}, {array_size})"
 

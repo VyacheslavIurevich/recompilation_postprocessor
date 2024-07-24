@@ -1,5 +1,7 @@
 """This module contains functions that handle functions' decompiled code"""
 from collections import OrderedDict
+from fnmatch import fnmatch
+import re
 
 TYPES_TO_REPLACE = OrderedDict(uint="unsigned int",
                                ushort="unsigned short",
@@ -21,6 +23,8 @@ def replace_types(code):
 
 def remove_stack_protection(code):
     """Removes stack protection from function code"""
+    if STACK_PROTECTOR_VARIABLE not in code:
+        return code
     lines = code.split('\n')
     for num, line in enumerate(lines):
         if STACK_PROTECTOR_VARIABLE in line:
@@ -47,38 +51,58 @@ def remove_stack_protection(code):
                 if "!=" in line:
                     lines.pop(num + 1)
             lines.pop(num)
-    new_code = '\n'.join(lines)
-    return new_code
+    return '\n'.join(lines)
 
 
-PATTERNS_AND_HANDLERS = dict([(STACK_PROTECTOR_VARIABLE, remove_stack_protection)])
+def replace_cast_to_memset(code):
+    """Replaces some cast expressions to memset"""
+    lines = code.split('\n')
+    for num, line in enumerate(lines):
+        if fnmatch(line, "[*] = (*  [[]*[]])*;"):
+            num_pattern = r'(?<![_,a-zA-Z])\b(\d+|\d+x\d+)\b'
+            array_size, value = re.findall(num_pattern, line)
+            var_pattern = r'\b([a-zA-Z]\w*)\b'
+            var = re.findall(var_pattern, line)[0]
+            lines[num] = f"memset(&{var}, {value}, {array_size})"
+
+        if fnmatch(line, "[*](* ([*]) [[]*[]])(*) = (*  [[]*[]])*;"):
+            num_pattern = r'(?<![_,a-zA-Z])\b(\d+|\d+x\d+)\b'
+            matches = re.findall(num_pattern, line)
+            array_size, offset, value = matches[0], matches[1], matches[3]
+            var_pattern = r'\b([a-zA-Z]\w*)\b'
+            var = re.findall(var_pattern, line)[1]
+            lines[num] = f"memset({var} + {offset}, {value}, {array_size})"
+
+    return '\n'.join(lines)
+
+
+PATTERN_HANDLERS = (remove_stack_protection,)
 
 
 def handle_function(code):
     """Handling function code"""
     code = replace_types(code)
-    for pattern, handler in PATTERNS_AND_HANDLERS.items():
-        if pattern in code:
-            code = handler(code)
+    for pattern_handler in PATTERN_HANDLERS:
+        code = pattern_handler(code)
     return code
 
 
 def line_from_body(line, signature):
-    """Line is from function body if it is not a comment, is not empty, 
+    """Line is from function body if it is not a comment, is not empty,
     is not a { or } and is not its signature. Function checks that line is from body"""
     return not (line.startswith(("//", "/*")) or line == ''
                 or line in "{}" or line == signature[:-1])
 
 
 def is_single_return(code, signature):
-    """If function body consists of single return;, it is service function. 
+    """If function body consists of single return;, it is service function.
     Function checks if function consists of single return"""
     body = [line.replace(' ', '') for line in code.split('\n') if line_from_body(line, signature)]
     return len(body) == 1 and body[0] == "return;"
 
 
 def exclude_function_code(function, single_return_functions, monitor):
-    """If function calls single return function, it is service function. 
+    """If function calls single return function, it is service function.
     Function checks if function calls single return function."""
     for single_return_function in single_return_functions:
         if function in single_return_function.getCallingFunctions(monitor):

@@ -3,6 +3,7 @@
 # pylint: disable=wrong-import-position, import-error, wrong-import-order
 import function_code_handling
 import function_handling
+import re
 import pyhidra
 
 pyhidra.start()
@@ -69,10 +70,12 @@ def put_concat(file_writer, code, used_concats):
     return used_concats
 
 
-def put_functions_signatures(program, file_writer, monitor, decompiler):
-    """Puts functions' signatures to C code file"""
+def function_filter(program, monitor, decompiler):
+    """Function filtering"""
     functions_code = []
+    signatures_code = []
     single_return_functions = []
+    name_main = ""
     for function in program.getFunctionManager().getFunctions(True):
         if exclude_function(function):
             continue
@@ -81,6 +84,12 @@ def put_functions_signatures(program, file_writer, monitor, decompiler):
         function_signature = decompiled_function.getSignature()
         function_signature_processed = function_code_handling.replace_types(function_signature)
         function_code = decompiled_function.getC()
+        if name_main == "" and "__libc_start_main" in function_code:
+            match = re.findall(r'__libc_start_main\(\w*[^\w]', function_code)
+            # print(list(match))
+            # print(list(match)[0].split('(')[1][:-1])
+            name_main = list(match)[0].split('(')[1][:-1]
+            continue
         if function_code_handling.is_single_return(function_code, function_signature):
             single_return_functions.append(function)
             continue
@@ -89,17 +98,27 @@ def put_functions_signatures(program, file_writer, monitor, decompiler):
             continue
         function_code_processed = function_code_handling.handle_function(function_code)
         functions_code.append(function_code_processed)
-        file_writer.println(function_signature_processed + '\n')
-    return functions_code
+        signatures_code.append(function_signature_processed + '\n')
+    return signatures_code, functions_code, name_main
 
 
-def put_functions_code(functions_code, file_writer, decompiler):
+def put_signatures(signatures_code, name_main, file_writer):
+    """Writing functions and their signatures to a file"""
+    for signature in signatures_code:
+        if name_main != "" and name_main in signature:
+            file_writer.println(signature.replace(name_main, "main"))
+        else:
+            file_writer.println(signature)
+
+
+def put_functions_code(functions_code, file_writer, name_main):
     """Puts functions' code to C code file"""
     used_concats = set()
     for function_code in functions_code:
         if "CONCAT" in function_code:
             used_concats = \
                 put_concat(file_writer, function_code, used_concats)
-        file_writer.println(function_code)
-    decompiler.closeProgram()
-    decompiler.dispose()
+        if name_main != "" and name_main in function_code:
+            file_writer.println(function_code.replace(name_main, "main"))
+        else:
+            file_writer.println(function_code)

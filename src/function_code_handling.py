@@ -91,7 +91,7 @@ def replace_x_y_(code):
     """Replacing variable references, of the form ._x_y_"""
     lines = code.split('\n')
     for num, line in enumerate(lines):
-        match = re.findall(r'[\W][\w\.]*\._\d*_\d_', line)
+        match = re.findall(r'(?<!\w)[^\d\(\)\[\]=\* \+][\w\.]*\._\d*_\d_', line)
         if match:
             for i in match:
                 current_variable = i[1:]

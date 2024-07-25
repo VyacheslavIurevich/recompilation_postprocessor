@@ -7,7 +7,7 @@ import global_variables_handling
 import pyhidra
 from java.io import File, PrintWriter
 
-LIBRARY_LIST = ("stdio.h", "stdlib.h", "inttypes.h", "stdbool.h")
+LIBRARY_LIST = ("stdio.h", "stdlib.h", "inttypes.h", "stdbool.h", "memory.h")
 SECTIONS = (".bss", ".rodata", ".data")
 
 
@@ -33,4 +33,4 @@ def export_c_code(binary_file_path, output_file_path):
     rmtree(f"resources/in/{project_folder}")
 
 
-export_c_code("resources/in/calculator", "resources/out/calculator.c")
+export_c_code("resources/in/calculator", "resources/out/test.c")

@@ -2,8 +2,6 @@
 import re
 from math import ceil, log2
 from collections import OrderedDict
-from math import ceil, log2
-import re
 
 TYPES_TO_REPLACE = OrderedDict(uint="unsigned int",
                                ushort="unsigned short",
@@ -21,11 +19,6 @@ TYPES_TO_REPLACE = OrderedDict(uint="unsigned int",
 STACK_PROTECTOR_VARIABLE = "in_FS_OFFSET"
 CONCAT_LEN = 6  # = len("CONCAT")
 BYTE_SIZE = 8
-
-
-def get_nearest_lower_power_2(num):
-    """Rounds a number to nearest lower power of 2"""
-    return 2 ** ceil(log2(num))
 
 
 def get_nearest_lower_power_2(num):

@@ -1,6 +1,5 @@
 """This module contains functions that handle functions' decompiled code"""
 from collections import OrderedDict
-from fnmatch import fnmatch
 import re
 
 TYPES_TO_REPLACE = OrderedDict(uint="unsigned int",
@@ -57,24 +56,28 @@ def remove_stack_protection(code):
 def replace_cast_to_memset(code):
     """Replaces some cast expressions to memset"""
     lines = code.split('\n')
-    num_pattern = r"(?<!\w)\d*|0x\d*"
-    var_pattern = r"(?<!\w)[^\d]\w*"
+    num_pattern = r"(?<!\w)(0x\d+|\d+)"
+    var_pattern = type_pattern = r"(?<!\w)[^\d\(\)\[\]=\* \+]\w*"
     for num, line in enumerate(lines):
-        if fnmatch(line, "[*] = (*  [[]*[]])*;"):
+        if re.fullmatch(fr"\s*{var_pattern}\s*=\s*\({type_pattern}\s*\[\s*{num_pattern}"
+                        fr"\s*]\s*\)\s*{num_pattern};\s*", line):
             array_size, value = re.findall(num_pattern, line)
             var = re.findall(var_pattern, line)[0]
-            lines[num] = f"memset(&{var}, {value}, {array_size})"
+            lines[num] = f"memset(&{var}, {value}, {array_size});"
 
-        if fnmatch(line, "[*](* ([*]) [[]*[]])(*) = (*  [[]*[]])*;"):
+        elif re.fullmatch(fr"\s*\*\s*\({type_pattern}\s*\(\*\)\s*\[{num_pattern}"
+                          fr"]\)\s*\({var_pattern}\s*\+\s*{num_pattern}"
+                          fr"\)\s*=\s*\({type_pattern}\s*\[{num_pattern}"
+                          fr"]\)\s*{num_pattern};\s*", line):
             matches = re.findall(num_pattern, line)
             array_size, offset, value = matches[0], matches[1], matches[3]
             var = re.findall(var_pattern, line)[1]
-            lines[num] = f"memset({var} + {offset}, {value}, {array_size})"
+            lines[num] = f"memset({var} + {offset}, {value}, {array_size});"
 
     return '\n'.join(lines)
 
 
-PATTERN_HANDLERS = (remove_stack_protection,)
+PATTERN_HANDLERS = (remove_stack_protection, replace_cast_to_memset)
 
 
 def handle_function(code):

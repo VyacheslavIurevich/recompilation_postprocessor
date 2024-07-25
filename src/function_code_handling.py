@@ -1,4 +1,6 @@
 """This module contains functions that handle functions' decompiled code"""
+import re
+from math import ceil, log2
 from collections import OrderedDict
 from math import ceil, log2
 import re
@@ -6,14 +8,24 @@ import re
 TYPES_TO_REPLACE = OrderedDict(uint="unsigned int",
                                ushort="unsigned short",
                                ulong="unsigned long",
-                               undefined2="uint16_t",
                                undefined3="uint32_t",
                                undefined5="uint64_t",
                                undefined6="uint64_t",
-                               undefined7="uint64_t")
+                               undefined7="uint64_t",
+                               int3="uint32_t",
+                               int5="uint64_t",
+                               int6="uint64_t",
+                               int7="uint64_t")
+
+
 STACK_PROTECTOR_VARIABLE = "in_FS_OFFSET"
 CONCAT_LEN = 6  # = len("CONCAT")
 BYTE_SIZE = 8
+
+
+def get_nearest_lower_power_2(num):
+    """Rounds a number to nearest lower power of 2"""
+    return 2 ** ceil(log2(num))
 
 
 def get_nearest_lower_power_2(num):

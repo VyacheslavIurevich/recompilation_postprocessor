@@ -1,5 +1,6 @@
 """This module contains functions that handle functions' decompiled code"""
 from collections import OrderedDict
+from math import ceil, log2
 import re
 
 TYPES_TO_REPLACE = OrderedDict(uint="unsigned int",
@@ -11,6 +12,13 @@ TYPES_TO_REPLACE = OrderedDict(uint="unsigned int",
                                undefined6="uint64_t",
                                undefined7="uint64_t")
 STACK_PROTECTOR_VARIABLE = "in_FS_OFFSET"
+CONCAT_LEN = 6  # = len("CONCAT")
+BYTE_SIZE = 8
+
+
+def get_nearest_lower_power_2(num):
+    """Rounds a number to nearest lower power of 2"""
+    return 2 ** ceil(log2(num))
 
 
 def replace_types(code):
@@ -77,7 +85,24 @@ def replace_cast_to_memset(code):
     return '\n'.join(lines)
 
 
-PATTERN_HANDLERS = (remove_stack_protection, replace_cast_to_memset)
+def replace_x_y_(code):
+    """Replacing variable references, of the form ._x_y_"""
+    lines = code.split('\n')
+    for num, line in enumerate(lines):
+        match = re.findall(r'(?<!\w)[^\d()\[\]=* +][\w.]*\._\d*_\d_', line)
+        if match:
+            for i in match:
+                current_variable = i[1:]
+                last_value = current_variable.split('.')[-1]
+                numbers = last_value.split("_")
+                lines[num] = lines[num].replace(i[1:],
+                f"*(uint{get_nearest_lower_power_2(8 * int(numbers[2]))}_t *)"
+                f"((unsigned char *)&{current_variable[:-(len(last_value) + 1)]} + {numbers[1]})")
+    new_code = '\n'.join(lines)
+    return new_code
+
+
+PATTERN_HANDLERS = (remove_stack_protection, replace_cast_to_memset, replace_x_y_)
 
 
 def handle_function(code):
@@ -109,3 +134,26 @@ def exclude_function_code(function, single_return_functions, monitor):
         if function in single_return_function.getCallingFunctions(monitor):
             return True
     return False
+
+
+def put_concat(file_writer, code, used_concats):
+    """Puts CONCATXY functions into C code"""
+    concat_cnt = code.count("CONCAT")
+    concat_idx = 0
+    for _ in range(concat_cnt):
+        concat_idx = code.find("CONCAT", concat_idx) + CONCAT_LEN
+        first_size = int(code[concat_idx])
+        second_size = int(code[concat_idx + 1])
+        if (first_size, second_size) in used_concats:
+            continue
+        first_inttype_size = get_nearest_lower_power_2(first_size * BYTE_SIZE)
+        second_inttype_size = get_nearest_lower_power_2(second_size * BYTE_SIZE)
+        concat_name = f"unsigned long CONCAT{first_size}{second_size}"
+        concat_args = f"(uint{first_inttype_size}_t a, uint{second_inttype_size}_t b)\n"
+        concat_body = \
+            f"return ((unsigned long)b) | (unsigned long)a << ({second_size} * {BYTE_SIZE});"
+        concat_signature = concat_name + concat_args
+        concat_function = concat_signature + '{' + '\n' + '\t' + concat_body + '\n' + '}' + '\n'
+        file_writer.println(concat_function)
+        used_concats.add((first_size, second_size))
+    return used_concats

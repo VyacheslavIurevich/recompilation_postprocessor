@@ -31,3 +31,12 @@ def function_is_plt(function):
             if not min_address <= jmp_address <= max_address:
                 return True
     return False
+
+
+def exclude_function(function):
+    """Dumping program data types"""
+    entry_point = function.getEntryPoint()
+    code_unit_at = function.getProgram().getListing().getCodeUnitAt(entry_point)
+    return function_in_runtime(function) \
+        or function_is_plt(function) \
+        or code_unit_at.getMnemonicString() == "??"

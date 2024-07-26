@@ -7,7 +7,7 @@ import global_variables_handling
 import pyhidra
 from java.io import File, PrintWriter
 
-LIBRARY_LIST = ("stdio.h", "stdlib.h", "inttypes.h", "stdbool.h")
+LIBRARY_LIST = ("stdio.h", "stdlib.h", "inttypes.h", "stdbool.h", "memory.h")
 SECTIONS = (".bss", ".rodata", ".data")
 
 

@@ -33,7 +33,10 @@ def init_decompiler(program):
     decompiler = DecompInterface()
     decompiler.setOptions(options)
     decompiler.openProgram(program)
-    return ude_function(function):
+    return decompiler
+
+
+def exclude_function(function):
     """Dumping program data types"""
     entry_point = function.getEntryPoint()
     code_unit_at = function.getProgram().getListing().getCodeUnitAt(entry_point)

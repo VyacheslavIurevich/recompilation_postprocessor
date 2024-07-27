@@ -79,21 +79,29 @@ def function_filter(program, monitor, decompiler):
 
 def put_signatures(signatures_code, name_main, file_writer):
     """Writing functions and their signatures to a file"""
+    namespace_functions = set()
     for signature in signatures_code:
         if name_main != "" and name_main in signature:
             file_writer.println(signature.replace(name_main, "main"))
+        elif "::" in signature:
+            function_name = signature.split()[1].split('(')[0]
+            namespace_functions.add((function_name, function_name.replace("::", "__")))
+            file_writer.println(signature.replace("::", "__"))
         else:
             file_writer.println(signature)
+    return namespace_functions
 
 
-def put_functions_code(functions_code, file_writer, name_main):
+def put_functions_code(functions_code, file_writer, name_main, namespace_functions):
     """Puts functions' code to C code file"""
     internal_decomp_funcs = set()
     for function_code in functions_code:
         internal_decomp_funcs =\
               function_code_handling.put_internal_decomp_functions(
                   file_writer, function_code, internal_decomp_funcs)
+        for namespace_function_name, new_name in namespace_functions:
+            function_code_processed = function_code.replace(namespace_function_name, new_name)
         if name_main != "" and name_main in function_code:
-            file_writer.println(function_code.replace(name_main, "main"))
+            file_writer.println(function_code_processed.replace(name_main, "main"))
         else:
-            file_writer.println(function_code)
+            file_writer.println(function_code_processed)

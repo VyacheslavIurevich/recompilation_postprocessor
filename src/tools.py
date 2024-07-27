@@ -44,6 +44,7 @@ def exclude_function(function):
         or function_handling.function_is_plt(function) \
         or code_unit_at.getMnemonicString() == "??"
 
+
 def function_filter(program, monitor, decompiler):
     """Function filtering"""
     functions_code = []
@@ -87,11 +88,11 @@ def put_signatures(signatures_code, name_main, file_writer):
 
 def put_functions_code(functions_code, file_writer, name_main):
     """Puts functions' code to C code file"""
-    used_concats = set()
+    internal_decomp_funcs = set()
     for function_code in functions_code:
-        if "CONCAT" in function_code:
-            used_concats = \
-                function_code_handling.put_concat(file_writer, function_code, used_concats)
+        internal_decomp_funcs =\
+              function_code_handling.put_internal_decomp_functions(
+                  file_writer, function_code, internal_decomp_funcs)
         if name_main != "" and name_main in function_code:
             file_writer.println(function_code.replace(name_main, "main"))
         else:

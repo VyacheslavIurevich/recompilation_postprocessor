@@ -17,12 +17,11 @@ TYPES_TO_REPLACE = OrderedDict(uint="unsigned int",
 
 
 STACK_PROTECTOR_VARIABLE = "in_FS_OFFSET"
-CONCAT_LEN = 6  # = len("CONCAT")
 BYTE_SIZE = 8
 
 
-def get_nearest_lower_power_2(num):
-    """Rounds a number to nearest lower power of 2"""
+def get_nearest_higher_power_2(num):
+    """Rounds a number to nearest higher power of 2"""
     return 2 ** ceil(log2(num))
 
 
@@ -101,7 +100,7 @@ def replace_x_y_(code):
                 last_value = current_variable.split('.')[-1]
                 numbers = last_value.split("_")
                 lines[num] = lines[num].replace(i[1:],
-                f"*(uint{get_nearest_lower_power_2(8 * int(numbers[2]))}_t *)"
+                f"*(uint{get_nearest_higher_power_2(8 * int(numbers[2]))}_t *)"
                 f"((unsigned char *)&{current_variable[:-(len(last_value) + 1)]} + {numbers[1]})")
     new_code = '\n'.join(lines)
     return new_code
@@ -141,24 +140,50 @@ def exclude_function_code(function, single_return_functions, monitor):
     return False
 
 
-def put_concat(file_writer, code, used_concats):
-    """Puts CONCATXY functions into C code"""
-    concat_cnt = code.count("CONCAT")
-    concat_idx = 0
-    for _ in range(concat_cnt):
-        concat_idx = code.find("CONCAT", concat_idx) + CONCAT_LEN
-        first_size = int(code[concat_idx])
-        second_size = int(code[concat_idx + 1])
-        if (first_size, second_size) in used_concats:
-            continue
-        first_inttype_size = get_nearest_lower_power_2(first_size * BYTE_SIZE)
-        second_inttype_size = get_nearest_lower_power_2(second_size * BYTE_SIZE)
-        concat_name = f"unsigned long CONCAT{first_size}{second_size}"
-        concat_args = f"(uint{first_inttype_size}_t a, uint{second_inttype_size}_t b)\n"
-        concat_body = \
-            f"return ((unsigned long)b) | (unsigned long)a << ({second_size} * {BYTE_SIZE});"
-        concat_signature = concat_name + concat_args
-        concat_function = concat_signature + '{' + '\n' + '\t' + concat_body + '\n' + '}' + '\n'
-        file_writer.println(concat_function)
-        used_concats.add((first_size, second_size))
-    return used_concats
+def concat(first_size, second_size, first_type_size, second_type_size):
+    """Builds CONCATXY function"""
+    output_type_size = get_nearest_higher_power_2(first_size + second_size) * BYTE_SIZE
+    name = f"uint{output_type_size}_t CONCAT{first_size}{second_size}"
+    args = f"(uint{first_type_size}_t x, uint{second_type_size}_t y)\n"
+    body = \
+        f"return ((uint{output_type_size}_t)y) |"\
+        f"(uint{output_type_size}_t)x << ({second_size} * {BYTE_SIZE});"
+    return name + args + '{' + '\n' + '\t' + body + '\n' + '}' + '\n'
+
+
+def sub(input_size, output_size, input_type_size, output_type_size):
+    """Builds SUBXY function"""
+    name = f"uint{output_type_size}_t SUB{input_size}{output_size}"
+    args = f"(uint{input_type_size}_t x, char c)\n"
+    body = f"return (uint{output_type_size}_t) (x >> c * {BYTE_SIZE});"
+    return name + args + '{' + '\n' + '\t' + body + '\n' + '}' + '\n'
+
+
+def zext(input_size, output_size, input_type_size, output_type_size):
+    """Builds ZEXTXY function"""
+    name = f"uint{output_type_size}_t ZEXT{input_size}{output_size}"
+    args = f"(uint{input_type_size}_t x)\n"
+    body = f"return (uint{output_type_size}_t) x;"
+    return name + args + '{' + '\n' + '\t' + body + '\n' + '}' + '\n'
+
+
+INTERNAL_DECOMPILER_FUNCTIONS = dict([("CONCAT", concat), ("SUB", sub), ("ZEXT", zext)])
+
+
+def put_internal_decomp_functions(file_writer, code, used_functions):
+    """Puts internal decompiler functions into C code. IDF means internal decompiler functions"""
+    for idf_name, handler in INTERNAL_DECOMPILER_FUNCTIONS.items():
+        idf_cnt = code.count(idf_name)
+        idf_idx = 0
+        for _ in range(idf_cnt):
+            idf_idx = code.find(idf_name, idf_idx) + len(idf_name)
+            first_size = int(code[idf_idx])
+            second_size = int(code[idf_idx + 1])
+            first_type_size = get_nearest_higher_power_2(first_size * BYTE_SIZE)
+            second_type_size = get_nearest_higher_power_2(second_size * BYTE_SIZE)
+            if f"{idf_name}{first_size}{second_size}" in used_functions:
+                continue
+            idf_body = handler(first_size, second_size, first_type_size, second_type_size)
+            file_writer.println(idf_body)
+            used_functions.add(f"{idf_name}{first_size}{second_size}")
+    return used_functions

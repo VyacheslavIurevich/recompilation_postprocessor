@@ -24,10 +24,9 @@ def function_is_plt(function):
     min_address = address_to_int(body.getMinAddress())
     max_address = address_to_int(body.getMaxAddress())
     for address in body.getAddresses(True):
-        code_unit = str(listing.getCodeUnitAt(address))
-        if code_unit.startswith(PLT_INSTRUCTION):
-            words = code_unit.split()
-            jmp_address = address_to_int(words[-1][1:-1])  # [1:-1] is to remove [] from address
+        code_unit = listing.getCodeUnitAt(address)
+        if str(code_unit).startswith(PLT_INSTRUCTION):
+            jmp_address = code_unit.getInputObjects()[0].getOffset()
             if not min_address <= jmp_address <= max_address:
                 return True
     return False

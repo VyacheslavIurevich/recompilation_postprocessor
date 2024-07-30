@@ -175,10 +175,13 @@ INTERNAL_DECOMPILER_FUNCTIONS = dict([("CONCAT", concat), ("SUB", sub), ("ZEXT",
 def put_internal_decomp_functions(file_writer, code, used_functions):
     """Puts internal decompiler functions into C code. IDF means internal decompiler functions"""
     for idf_name, handler in INTERNAL_DECOMPILER_FUNCTIONS.items():
+        idf_postfix_pattern = r"\d\d\("
         idf_cnt = code.count(idf_name)
         idf_idx = 0
         for _ in range(idf_cnt):
             idf_idx = code.find(idf_name, idf_idx) + len(idf_name)
+            if not re.fullmatch(idf_postfix_pattern, code[idf_idx: idf_idx + 3]):
+                continue
             first_size = int(code[idf_idx])
             second_size = int(code[idf_idx + 1])
             first_type_size = get_nearest_higher_power_2(first_size * BYTE_SIZE)

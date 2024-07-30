@@ -1,8 +1,8 @@
 """Tools for checking functions and exporting decompiled program to a .c file"""
 
 # pylint: disable=wrong-import-position, import-error, wrong-import-order
-import function_code_handling
-import function_handling
+from src.scripts import function_code_handling
+from src.scripts import function_handling
 import re
 import pyhidra
 

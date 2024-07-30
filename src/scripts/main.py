@@ -4,8 +4,8 @@
 from shutil import rmtree
 from os.path import exists
 import argparse
-import tools
-import global_variables_handling
+from src.scripts import tools
+from src.scripts import global_variables_handling
 import pyhidra
 from java.io import File, PrintWriter
 
@@ -41,8 +41,13 @@ def export_c_code(binary_file_path, output_file_path):
     rmtree(f"{directory}/{project_folder}")
 
 
-parser = argparse.ArgumentParser()
-parser.add_argument("input")
-parser.add_argument("output")
-args = vars(parser.parse_args())
-export_c_code(args["input"], args["output"])
+def run():
+    """Parses command line arguments and runs the code"""
+    parser = argparse.ArgumentParser()
+    parser.add_argument("input")
+    parser.add_argument("output")
+    args = vars(parser.parse_args())
+    export_c_code(args["input"], args["output"])
+
+
+run()

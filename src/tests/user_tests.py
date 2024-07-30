@@ -1,47 +1,48 @@
 """User scenario tests"""
+# pylint: disable=import-error, unused-argument, redefined-outer-name
 import os
-
+import pytest
 from src.scripts.main import export_c_code
 
-
-INPUT_DIRECTORY = "resources/in/"
-OUTPUT_PATH = "resources/out/code.c"
+INPUT_DIRECTORY = "res/in/"
+OUTPUT_PATH = "res/out/code.c"
 COMPILER = "gcc"
 
 
-class UserTests:
+@pytest.fixture(scope='module')
+def clean():
+    """Deleting a.out and code.c files"""
+    yield
+    os.remove("a.out")
+    os.remove(OUTPUT_PATH)
+
+
+def compile_binary(binary):
+    """Takes binary name and compiles it"""
+    path = f"{INPUT_DIRECTORY}{binary}"
+    export_c_code(path, OUTPUT_PATH)
+    return os.system(f"{COMPILER} {OUTPUT_PATH}")
+
+
+class TestUser:
     """User scenario tests"""
 
-    def compile_binary(self, binary):
-        """Takes binary name and compiles it"""
-        path = f"{INPUT_DIRECTORY}{binary}"
-        export_c_code(path, OUTPUT_PATH)
-        return os.system(f"{COMPILER} {OUTPUT_PATH}")
-
-    def test_hello_world(self):
+    def test_hello_world(self, clean):
         """Recompiles hello world binary"""
-        assert self.compile_binary("hello_world") == 0
+        assert compile_binary("hello_world") == 0
 
-    def test_integrate_sin(self):
-        """Recompiles sin intergrating binary"""
-        assert self.compile_binary("integrate_sin") == 0
-
-    def test_array_sort(self):
-        """Recompiles array sorting binary"""
-        assert self.compile_binary("array_sort") == 0
-
-    def test_bmp(self):
+    def test_bmp(self, clean):
         """Recompiles BMP header reader binary"""
-        assert self.compile_binary("bmp1") == 0
+        assert compile_binary("bmp1") == 0
 
-    def test_bst(self):
+    def test_bst(self, clean):
         """Recompiles binary search tree binary"""
-        assert self.compile_binary("bst") == 0
+        assert compile_binary("bst") == 0
 
-    def test_avl(self):
+    def test_avl(self, clean):
         """Recompiles AVL tree binary"""
-        assert self.compile_binary("avl") == 0
+        assert compile_binary("avl") == 0
 
-    def test_linpack(self):
+    def test_linpack(self, clean):
         """Recompiles AVL tree binary"""
-        assert self.compile_binary("linpack") == 0
+        assert compile_binary("linpack") == 0

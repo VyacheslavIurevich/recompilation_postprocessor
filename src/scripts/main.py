@@ -3,9 +3,8 @@
 # pylint: disable=wrong-import-position, import-error, wrong-import-order
 from shutil import rmtree
 from os.path import exists
-import argparse
-import tools
-import global_variables_handling
+from src.scripts import tools
+from src.scripts import global_variables_handling
 import pyhidra
 from java.io import File, PrintWriter
 
@@ -39,10 +38,3 @@ def export_c_code(binary_file_path, output_file_path):
         project_folder = str(flat_api.getProjectRootFolder())[:-2]  # last two symbols are :/
     directory = binary_file_path[:binary_file_path.rfind('/')]
     rmtree(f"{directory}/{project_folder}")
-
-
-parser = argparse.ArgumentParser()
-parser.add_argument("input")
-parser.add_argument("output")
-args = vars(parser.parse_args())
-export_c_code(args["input"], args["output"])

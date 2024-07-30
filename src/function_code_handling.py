@@ -6,14 +6,16 @@ from collections import OrderedDict
 TYPES_TO_REPLACE = OrderedDict(uint="unsigned int",
                                ushort="unsigned short",
                                ulong="unsigned long",
-                               undefined3="uint32_t",
-                               undefined5="uint64_t",
-                               undefined6="uint64_t",
-                               undefined7="uint64_t",
                                int3="uint32_t",
                                int5="uint64_t",
                                int6="uint64_t",
-                               int7="uint64_t")
+                               int7="uint64_t",
+                               undefined2="uint16_t",
+                               undefined3="uint32_t",
+                               undefined5="uint64_t",
+                               undefined6="uint64_t",
+                               undefined7="uint64_t"
+                               )
 
 
 STACK_PROTECTOR_VARIABLE = "in_FS_OFFSET"

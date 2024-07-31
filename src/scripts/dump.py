@@ -118,7 +118,8 @@ def put_functions_code(functions_code, file_writer, name_main, namespace_functio
                   file_writer, function_code, internal_decomp_funcs)
         function_code_processed = function_code
         for namespace_function_name, new_name in namespace_functions:
-            function_code_processed = function_code.replace(namespace_function_name, new_name)
+            function_code_processed =\
+                function_code_processed.replace(namespace_function_name, new_name)
         if name_main != "" and name_main in function_code:
             file_writer.println(function_code_processed.replace(name_main, "main"))
         else:

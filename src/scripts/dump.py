@@ -14,14 +14,20 @@ CONCAT_LEN = 6  # = len("CONCAT")
 BYTE_SIZE = 8
 
 
-def put_program_data_types(program, file_writer, monitor):
+def put_program_data_types(program, file_writer, monitor, library_list):
     """Dumps program data types"""
     dtm = program.getDataTypeManager()
-    data_type_writer = DataTypeWriter(dtm, file_writer)
     data_type_list = []
     for data_type in dtm.getAllDataTypes():
-        if ".h" not in data_type.getPathName().split('/')[1]:
+        if ".h" not in data_type.getPathName() and\
+            "ELF" not in data_type.getPathName():
             data_type_list.append(data_type)
+        elif ".h" in data_type.getPathName() and\
+            data_type.getPathName().split('/')[1] not in library_list:
+            print(data_type.getPathName().split('/')[1])
+            library_list.add(data_type.getPathName().split('/')[1])
+            file_writer.println(f"#include <{data_type.getPathName().split('/')[1]}>")
+    data_type_writer = DataTypeWriter(dtm, file_writer)
     data_type_writer.write(data_type_list, monitor)
     dtm.close()
 

@@ -1,4 +1,4 @@
-"""Tools for checking functions and exporting decompiled program to a .c file"""
+"""Tools for exporting decompiled program to a .c file"""
 
 # pylint: disable=wrong-import-position, import-error, wrong-import-order
 from src.scripts import function_code_handling

@@ -9,6 +9,7 @@ import pyhidra
 pyhidra.start()
 from ghidra.app.decompiler import DecompileOptions, DecompInterface
 from ghidra.program.model.data import DataTypeWriter
+from ghidra.framework import Application
 
 CONCAT_LEN = 6  # = len("CONCAT")
 BYTE_SIZE = 8
@@ -18,15 +19,25 @@ def put_program_data_types(program, file_writer, monitor, library_list):
     """Dumps program data types"""
     dtm = program.getDataTypeManager()
     data_type_list = []
+    path = Application.getApplicationRootDirectory().getAbsolutePath()\
+        + "/Features/Base/data/parserprofiles/clib.prf"
+    libc = {}
+    with open(path, 'r', encoding="utf-8") as f:
+        for line in f:
+            if line == '\n':
+                break
+            header = line.replace("\n", "")
+            libc[header.split('\\')[-1]] = header.replace("\\", "/")
     for data_type in dtm.getAllDataTypes():
+        header_name = data_type.getPathName().split('/')[1]
         if ".h" not in data_type.getPathName() and\
             "ELF" not in data_type.getPathName():
             data_type_list.append(data_type)
         elif ".h" in data_type.getPathName() and\
-            data_type.getPathName().split('/')[1] not in library_list:
-            print(data_type.getPathName().split('/')[1])
-            library_list.add(data_type.getPathName().split('/')[1])
-            file_writer.println(f"#include <{data_type.getPathName().split('/')[1]}>")
+            header_name not in library_list and\
+            header_name in libc:
+            library_list.add(header_name)
+            file_writer.println(f"#include <{libc[header_name]}>")
     data_type_writer = DataTypeWriter(dtm, file_writer)
     data_type_writer.write(data_type_list, monitor)
     dtm.close()

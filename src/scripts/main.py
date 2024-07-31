@@ -8,7 +8,6 @@ from src.scripts import global_variables_handling
 import pyhidra
 from java.io import File, PrintWriter
 
-
 LIBRARY_LIST = {"stdio.h", "stdlib.h", "inttypes.h", "stdbool.h", "memory.h"}
 SECTIONS = (".bss", ".rodata", ".data")
 
@@ -20,7 +19,6 @@ def export_c_code(binary_file_path, output_file_path):
         return
     with pyhidra.open_program(binary_file_path) as flat_api:
         program = flat_api.getCurrentProgram()
-
         f = File(output_file_path)
         c_file_writer = PrintWriter(f)
         for lib in LIBRARY_LIST:

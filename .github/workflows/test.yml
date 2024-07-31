@@ -29,4 +29,5 @@ jobs:
         pip install pytest
     - name: Run tests
       run: |
+        mkdir res/out
         pytest src/tests/user_tests.py

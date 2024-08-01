@@ -70,7 +70,9 @@ def get_array_declaration(code_unit):
     variable_declaration_string = \
         f'{array_type[:array_type.index("[")]} {str(code_unit.getLabel())}' + \
         array_type[array_type.index("["):]
-    if string_array is not None:
+    if string_array.count("0x0") == int(array_type[array_type.index("[") + 1:-1]):
+        variable_declaration_string += " = {0}"
+    elif string_array is not None:
         variable_declaration_string += " = " + string_array
     return variable_declaration_string + ';'
 

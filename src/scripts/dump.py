@@ -1,4 +1,5 @@
-"""Tools for checking functions and exporting decompiled program to a .c file"""
+"""Tools for exporting decompiled program to a .c file"""
+
 
 # pylint: disable=wrong-import-position, import-error, wrong-import-order
 from src.scripts import function_code_handling
@@ -51,6 +52,7 @@ def put_program_data_types(program, file_writer, monitor, library_list):
     for typedef in typedefs:
         file_writer.println(typedef)
     data_type_writer = DataTypeWriter(dtm, file_writer)
+
     data_type_writer.write(data_type_list, monitor)
     dtm.close()
 

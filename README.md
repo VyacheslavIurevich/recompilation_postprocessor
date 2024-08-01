@@ -22,11 +22,20 @@ or SSH:
 ```shell
 git clone git@github.com:VyacheslavIurevich/recompilation_postprocessor.git
 ```
-# Usage
 Go to main folder of repository
 ```shell
 cd recompilation-postprocessor
 ```
+Create a virtual environment:
+```shell
+python3 -m venv .venv
+source .venv/bin/activate
+```
+Install requirements:
+```shell
+pip install -r requirements.txt
+```
+# Usage
 Run the script with input and output command line arguments.
 ```shell
 python run.py {path to input binary} {output .c file path}

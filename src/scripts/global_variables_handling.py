@@ -74,7 +74,8 @@ def get_array_declaration(code_unit):
     variable_declaration_string = \
         f'{array_type[:array_type.index("[")]} {str(code_unit.getLabel())}' + \
         array_type[array_type.index("["):]
-    if string_array.count("0x0") == math.prod(int(i) for i in re.findall(r'\[(\d*)\]', array_type)):
+    if string_array is not None and\
+        string_array.count("0x0") == math.prod(int(i) for i in re.findall(r'\[(\d*)\]', array_type)):
         variable_declaration_string += " = {0}"
     elif string_array is not None:
         variable_declaration_string += " = " + string_array

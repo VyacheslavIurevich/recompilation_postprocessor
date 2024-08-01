@@ -56,26 +56,26 @@ Enjoy!
 │  │  │
 │
 ├──res/in # Binary files examples
-│  ├── array_sort # Sorts an array of numbers https://github.com/VyacheslavIurevich/array_sort
+│  ├── array_sort # Sorts an array of numbers https://github.com/VyacheslavIurevich/array_sort. MIT License
 │  ├── avl # AVL Tree
-│  ├── bmp1 # BMP header reading tool https://github.com/Sarapulov-Vas/BMP
-│  ├── bmp1_stack-protector # BMP header reading tool, compiled with -fno-stack-protector https://github.com/Sarapulov-Vas/BMP
-│  ├── bmp2 # BMP header reading tool (second example) https://github.com/VyacheslavIurevich/bmp-header
-│  ├── bmp2_stack-protector # BMP header reading tool, compiled with -fno-stack-protector https://github.com/VyacheslavIurevich/bmp-header
+│  ├── bmp1 # BMP header reading tool https://github.com/Sarapulov-Vas/BMP. MIT License.
+│  ├── bmp1_stack-protector # BMP header reading tool, compiled with -fno-stack-protector https://github.com/Sarapulov-Vas/BMP. MIT License.
+│  ├── bmp2 # BMP header reading tool (second example) https://github.com/VyacheslavIurevich/bmp-header. MIT License.
+│  ├── bmp2_stack-protector # BMP header reading tool, compiled with -fno-stack-protector https://github.com/VyacheslavIurevich/bmp-header. MIT License.
 │  ├── bst.out # Binary search tree
-│  ├── calculator # Bigint https://github.com/VyacheslavIurevich/c_bigint
-│  ├── coremark.exe # Coremark benchmark https://github.com/eembc/coremark
-│  ├── dry2 # Dhrystone benchmark https://kreier.github.io/benchmark/dhrystone/
-│  ├── dry2o # Dhrystone benchmark https://kreier.github.io/benchmark/dhrystone/
-│  ├── dry2r # Dhrystone benchmark https://kreier.github.io/benchmark/dhrystone/
-│  ├── echo # Linux utility "echo"
+│  ├── calculator # Bigint https://github.com/VyacheslavIurevich/c_bigint. MIT License.
+│  ├── coremark.exe # Coremark benchmark https://github.com/eembc/coremark. Apache License.
+│  ├── dry2 # Dhrystone benchmark https://kreier.github.io/benchmark/dhrystone/. MIT License.
+│  ├── dry2o # Dhrystone benchmark https://kreier.github.io/benchmark/dhrystone/. MIT License.
+│  ├── dry2r # Dhrystone benchmark https://kreier.github.io/benchmark/dhrystone/. MIT License.
+│  ├── echo # Linux utility "echo". GPL.
 │  ├── global_variable # Global variables example
 │  ├── hello_world # Hello world example
-│  ├── integrate_sin # Integrating sin(x) example https://github.com/VyacheslavIurevich/sin_integral
-│  ├── linpack # linpack benchmark https://github.com/ereyes01/linpack
-│  ├── linpack_stack-protector # linpack benchmark, compiled with -fno-stack-protector https://github.com/ereyes01/linpack
-│  ├── pwd # Linux utility "pwd"
-│  ├── sudo # Linux utility "sudo"
+│  ├── integrate_sin # Integrating sin(x) example https://github.com/VyacheslavIurevich/sin_integral. MIT License.
+│  ├── linpack # linpack benchmark https://github.com/ereyes01/linpack. MIT License.
+│  ├── linpack_stack-protector # linpack benchmark, compiled with -fno-stack-protector https://github.com/ereyes01/linpack. MIT License.
+│  ├── pwd # Linux utility "pwd". GPL.
+│  ├── sudo # Linux utility "sudo". GPL.
 ```
 # Team
 * Vyacheslav Kochergin. [GitHub](https://github.com/VyacheslavIurevich), [Contact](https://t.me/se4life).

@@ -1,4 +1,4 @@
-name: Pylint
+name: Linter
 
 on:
   push:
@@ -20,8 +20,12 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies
       run: |
+        apt install shellcheck
         python -m pip install --upgrade pip
         pip install pylint
     - name: Analysing the code with pylint
       run: |
         ./ci/pylint.sh
+    - name: Analysing shell scripts with shellcheck
+      run: |
+        ./ci/shellcheck.sh

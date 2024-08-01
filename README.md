@@ -6,6 +6,7 @@ This script provides ability to postprocess code, which is decompiled via Ghidra
 * [Python 3.12](https://www.python.org/)
 * [pyhidra](https://github.com/dod-cyber-crime-center/pyhidra)
 * [Ghidra](https://github.com/NationalSecurityAgency/ghidra)
+
 Development:
 * [Pylint](https://www.pylint.org/)
 * [Pytest](https://docs.pytest.org/en/stable/)

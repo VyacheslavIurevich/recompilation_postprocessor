@@ -10,6 +10,8 @@ pyhidra.start()
 from ghidra.app.decompiler import DecompileOptions, DecompInterface
 from ghidra.program.model.data import DataTypeWriter
 from ghidra.framework import Application
+from ghidra.program.model.data import Structure
+from ghidra.program.model.data import Union
 
 CONCAT_LEN = 6  # = len("CONCAT")
 BYTE_SIZE = 8
@@ -19,10 +21,10 @@ def put_program_data_types(program, file_writer, monitor, library_list):
     """Dumps program data types"""
     dtm = program.getDataTypeManager()
     data_type_list = []
-    path = Application.getApplicationRootDirectory().getAbsolutePath()\
-        + "/Features/Base/data/parserprofiles/clib.prf"
     libc = {}
-    with open(path, 'r', encoding="utf-8") as f:
+    typedefs = []
+    with open(Application.getApplicationRootDirectory().getAbsolutePath()\
+        + "/Features/Base/data/parserprofiles/clib.prf", 'r', encoding="utf-8") as f:
         for line in f:
             if line == '\n':
                 break
@@ -33,11 +35,21 @@ def put_program_data_types(program, file_writer, monitor, library_list):
         if ".h" not in data_type.getPathName() and\
             "ELF" not in data_type.getPathName():
             data_type_list.append(data_type)
-        elif ".h" in data_type.getPathName() and\
-            header_name not in library_list and\
-            header_name in libc:
-            library_list.add(header_name)
-            file_writer.println(f"#include <{libc[header_name]}>")
+        elif ".h" in data_type.getPathName():
+            if isinstance(data_type, Structure):
+                typedefs.append(f"typedef struct {data_type.getDisplayName()}"
+                                f" struct_{data_type.getDisplayName()};")
+                data_type.setName(f"struct {data_type.getDisplayName()}")
+            elif isinstance(data_type, Union):
+                typedefs.append(f"typedef union {data_type.getDisplayName()}"
+                                f" union_{data_type.getDisplayName()};")
+                data_type.setName(f"union {data_type.getDisplayName()}")
+            if header_name not in library_list and\
+                header_name in libc:
+                library_list.add(header_name)
+                file_writer.println(f"#include <{libc[header_name]}>")
+    for typedef in typedefs:
+        file_writer.println(typedef)
     data_type_writer = DataTypeWriter(dtm, file_writer)
     data_type_writer.write(data_type_list, monitor)
     dtm.close()
@@ -78,8 +90,6 @@ def function_filter(program, monitor, decompiler):
         function_code = decompiled_function.getC()
         if name_main == "" and "__libc_start_main" in function_code:
             match = re.findall(r'__libc_start_main\(\w*[^\w]', function_code)
-            # print(list(match))
-            # print(list(match)[0].split('(')[1][:-1])
             name_main = list(match)[0].split('(')[1][:-1]
             continue
         if function_code_handling.is_single_return(function_code, function_signature):

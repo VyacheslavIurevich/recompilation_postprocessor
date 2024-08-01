@@ -43,3 +43,9 @@ def test_avl(clean):
 def test_linpack(clean):
     """Recompiles AVL tree binary"""
     assert compile_binary("linpack") == 0
+
+def test_export_c_code():
+    """Postprocessor test"""
+    for binary in os.listdir(INPUT_DIRECTORY):
+        export_c_code(f"{INPUT_DIRECTORY}{binary}", OUTPUT_PATH)
+    assert True

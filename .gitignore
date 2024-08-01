@@ -168,3 +168,4 @@ res/out
 
 .vscode/
 .idea/
+.venv/

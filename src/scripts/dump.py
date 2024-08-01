@@ -25,8 +25,8 @@ def put_program_data_types(program, file_writer, monitor, library_list):
     libc = {}
     typedefs = []
     with open(Application.getApplicationRootDirectory().getAbsolutePath()\
-        + "/Features/Base/data/parserprofiles/clib.prf", 'r', encoding="utf-8") as f:
-        for line in f:
+        + "/Features/Base/data/parserprofiles/clib.prf", 'r', encoding="utf-8") as file:
+        for line in file:
             if line == '\n':
                 break
             header = line.replace("\n", "")

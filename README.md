@@ -22,6 +22,10 @@ or SSH:
 ```shell
 git clone git@github.com:VyacheslavIurevich/recompilation_postprocessor.git
 ```
+Set the GHIDRA_INSTALL_DIR environment variable to point to the directory where Ghidra is installed.
+```shell
+export GHIDRA_INSTALL_DIR={path to Ghidra}
+```
 Go to main folder of repository
 ```shell
 cd recompilation-postprocessor
@@ -38,11 +42,11 @@ pip install -r requirements.txt
 # Usage
 Run the script with input and output command line arguments.
 ```shell
-python run.py {path to input binary} {output .c file path}
+python3 run.py {path to input binary} {output .c file path}
 ```
 For example: 
 ```shell
-python run.py res/in/hello_world res/out/hello_world.c
+python3 run.py res/in/hello_world res/out/hello_world.c
 ```
 After this, you can try to compile output code. Example with GCC:
 ```shell

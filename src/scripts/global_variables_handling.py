@@ -2,6 +2,7 @@
 
 # pylint: disable = import-error
 import re
+import math
 from java.lang import String
 
 
@@ -40,7 +41,10 @@ def read_structure(code_unit, program):
         elif component.isPointer():
             pointer_address = address_factory.getAddress(str(component.getValue()))
             pointer = listing.getCodeUnitAt(pointer_address)
-            current_component_value = pointer.getLabel()
+            if pointer is not None:
+                current_component_value = pointer.getLabel()
+            else:
+                current_component_value = ""
         else:
             current_component_value = str(component.getValue())
         struct += f"{current_component_value}, "
@@ -70,7 +74,7 @@ def get_array_declaration(code_unit):
     variable_declaration_string = \
         f'{array_type[:array_type.index("[")]} {str(code_unit.getLabel())}' + \
         array_type[array_type.index("["):]
-    if string_array.count("0x0") == int(array_type[array_type.index("[") + 1:-1]):
+    if string_array.count("0x0") == math.prod(int(i) for i in re.findall(r'\[(\d*)\]', array_type)):
         variable_declaration_string += " = {0}"
     elif string_array is not None:
         variable_declaration_string += " = " + string_array

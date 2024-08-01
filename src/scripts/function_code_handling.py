@@ -97,11 +97,10 @@ def replace_x_y_(code):
     for num, line in enumerate(lines):
         match = re.findall(r'(?<!\w)[^\d()\[\]=* +][\w.]*\._\d*_\d_', line)
         if match:
-            for i in match:
-                current_variable = i
+            for current_variable in match:
                 last_value = current_variable.split('.')[-1]
                 numbers = last_value.split("_")
-                lines[num] = lines[num].replace(i,
+                lines[num] = lines[num].replace(current_variable,
                 f"*(uint{get_nearest_higher_power_2(8 * int(numbers[2]))}_t *)"
                 f"((unsigned char *)&{current_variable[:-(len(last_value) + 1)]} + {numbers[1]})")
     new_code = '\n'.join(lines)

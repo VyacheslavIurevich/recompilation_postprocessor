@@ -26,7 +26,8 @@ jobs:
       run: |
         apt update
         apt install build-essential -y
-        python -m pip install --upgrade pip
+        apt install pip -y
+	python -m pip install --upgrade pip
         pip install pyhidra
         pip install pytest
     - name: Run tests

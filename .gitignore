@@ -164,7 +164,8 @@ cython_debug/
 # Our app resources
 *.rep
 *.gpr
-resources/out
+res/out
 
 .vscode/
 .idea/
+.venv/

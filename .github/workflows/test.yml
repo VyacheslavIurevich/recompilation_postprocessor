@@ -26,8 +26,8 @@ jobs:
       run: |
         apt update
         apt install build-essential -y
-        apt install python3-pip -y
-        pip install -H -r requirements.txt
+        apt install python3-full -y
+        pip install -r requirements.txt
     - name: Run tests
       run: |
         ./ci/test.sh

@@ -1,5 +1,5 @@
 # recompilation_postprocessor
-![Pylint](https://github.com/VyacheslavIurevich/recompilation_postprocessor/actions/workflows/pylint.yml/badge.svg)
+![Pylint](https://github.com/VyacheslavIurevich/recompilation_postprocessor/actions/workflows/lint.yml/badge.svg)
 
 This script provides ability to postprocess code, which is decompiled via Ghidra, to make it recompilable.
 # Technologies used

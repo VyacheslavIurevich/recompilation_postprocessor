@@ -10,7 +10,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     container:
-      image: fkiecad/ghidra_headless_base:v11.0.3
+      image: florian0/ghidra-headless:11.0.0
       env:
         GHIDRA_INSTALL_DIR: /ghidra
     strategy:
@@ -24,9 +24,6 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies
       run: |
-        apt update
-        apt upgrade -y
-        apt install libc6 -y
         python -m pip install --upgrade pip
         pip install -r requirements.txt
     - name: Run tests

@@ -10,7 +10,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     container:
-      image: olliver/ghidra
+      image: fkiecad/ghidra_headless_base:v11.0.3
       env:
         GHIDRA_INSTALL_DIR: /ghidra
     strategy:

@@ -10,7 +10,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     container:
-      image: florian0/ghidra-headless:11.0.0
+      image: blacktop/ghidra:11.1.0
       env:
         GHIDRA_INSTALL_DIR: /ghidra
     strategy:

@@ -24,6 +24,8 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies
       run: |
+        apt update
+        apt install build-essential -y
         python -m pip install --upgrade pip
         pip install -r requirements.txt
     - name: Run tests

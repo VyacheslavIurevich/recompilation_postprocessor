@@ -25,6 +25,9 @@ jobs:
     - name: Install dependencies
       run: |
         apt update
+        apt install software-properties-common -y
+        add-apt-repository ppa:ubuntu-toolchain-r/test
+        apt update
         apt install build-essential -y
         apt install gcc-13 -y
         python -m pip install --upgrade pip

@@ -14,9 +14,6 @@ from ghidra.framework import Application
 from ghidra.program.model.data import Structure
 from ghidra.program.model.data import Union
 
-CONCAT_LEN = 6  # = len("CONCAT")
-BYTE_SIZE = 8
-
 
 def put_program_data_types(program, file_writer, monitor, library_list):
     """Dumps program data types"""

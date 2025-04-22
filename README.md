@@ -4,7 +4,7 @@
 This script provides ability to postprocess code, which is decompiled via Ghidra, to make it closer to recompilable.
 # Technologies used
 * [Python 3.12](https://www.python.org/)
-* [pyhidra](https://github.com/dod-cyber-crime-center/pyhidra)
+* [pyhidra 1.3.0](https://github.com/dod-cyber-crime-center/pyhidra)
 * [Ghidra 11.1.0](https://github.com/NationalSecurityAgency/ghidra)
 
 Development:
@@ -13,10 +13,10 @@ Development:
 * [Shellcheck](https://www.shellcheck.net/)
 
 Running tests:
-* [GCC](https://gcc.gnu.org/)
+* [GCC 13](https://gcc.gnu.org/)
 
 # Setup
-Ensure that you do have Python with installed pip, Ghidra app and GCC compiler. If you want to run CI scripts, ensure you do have shellcheck installed.
+Ensure that you do have Python with installed pip, Ghidra app and GCC-13 compiler. If you want to run CI scripts, ensure you do have shellcheck installed.
 Then just clone the repo 
 using HTTPS:
 ```shell
@@ -55,15 +55,11 @@ python3 run.py res/in/hello_world res/out/hello_world.c
 ```
 After this, you can try to compile output code. Example with GCC:
 ```shell
-gcc res/out/hello_world.c
+gcc-13 res/out/hello_world.c
 ```
 Enjoy!
 # Running tests
-Ensure you do have res/out directory set.
-```shell
-mkdir -p res/out
-```
-After that, you can run our tests using pytest.
+You can run our tests using pytest.
 ```shell
 pytest src/tests/user_tests.py
 ```
